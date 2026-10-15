@@ -7,6 +7,7 @@ const suites = [
   ['translation', 'playwright.translation.config.ts', 5473, 9087, 10097],
   ['multilingual', 'playwright.multilingual.config.ts', 5573, 9187, 10197],
   ['recovery', 'playwright.recovery.config.ts', 5673, 9287, 10297],
+  ['deployment', 'playwright.deployment.config.ts', 5773, 9387, 10397],
 ];
 const cli = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', import.meta.url));
 const cwd = fileURLToPath(new URL('../', import.meta.url));

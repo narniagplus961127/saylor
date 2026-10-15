@@ -11,6 +11,7 @@ dist/
 coverage/
 *.log
 .worktrees/
+.vercel/
 playwright-report/
 test-results/
 

@@ -1,7 +1,7 @@
 # SayLor — Personal Web MVP
 
 Status: claimed
-Implementation authorization: Authorized by the user's implement-spec invocation on 2026-10-15, subject to the provider prerequisite and ticket dependencies. Paid services, deployment, merges, and protection changes remain unauthorized.
+Implementation authorization: Authorized by the user's implement-spec invocation on 2026-10-15, and subsequent approval to prepare Vercel-compatible code with updated specification. Actual deployment, paid services, merges, and repository-protection changes remain separate actions requiring authorization.
 Provider gate: Preliminary selection completed on 2026-10-15 with user-confirmed Free/ZDR settings and user-waived eligibility clarification. Candidate pipeline: Whisper Large V3 Turbo plus GPT-OSS 120B. Functional implementation is integrated; final release-quality acceptance remains failed/open in ticket 06. See acceptance-report.md.
 Updated: 2026-10-15
 
@@ -9,7 +9,7 @@ Updated: 2026-10-15
 
 The user wants to speak naturally and obtain useful written text without manually typing, removing fillers, repairing false starts, or translating each message. Their speech includes English, Mandarin, Malay, and switches between these languages within one recording.
 
-SayLor must meet one person's needs with a hard $0 software/service budget, conservative meaning preservation, and suitable treatment of potentially personal or confidential speech. The first deliverable is a local Windows web app. Desktop integration and mobile apps are later phases.
+SayLor must meet one person's needs with a hard $0 software/service budget, conservative meaning preservation, and suitable treatment of potentially personal or confidential speech. The local Windows web app remains supported. The next delivery phase is a private hosted web version on Vercel, sharing the same dictation and translation behavior. Desktop integration and native Android APK work are later phases.
 
 ## Solution
 
@@ -20,6 +20,8 @@ Default dictation preserves the spoken languages while removing fillers and fals
 The user reviews, edits, and manually copies the result. After transcription is available, selecting a different output language immediately processes the original transcription into that language. For example, Mandarin speech followed by selecting English produces English text without recording again or pressing Generate again. Ask before replacing manual edits; declining preserves the result, selected language and saved preference. Generate again remains available to repeat the current choice explicitly.
 
 Run the frontend and backend locally with one startup command. Use cloud AI only after free-plan, privacy, eligibility, and quality checks pass. Stop cleanly when free quotas are exhausted. Keep no saved recording/transcript history and never automatically switch to paid services.
+
+For the hosted phase, one Vercel Hobby project serves the website and backend functions on the same HTTPS origin. The application must work without the owner's local servers running. Require owner-only access covering both the website and API, including production URLs, and keep Groq credentials server-only. A private hosted trial does not establish that the outstanding speech-quality gate has passed.
 
 ## User Stories
 
@@ -63,6 +65,9 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 38. As a user, I want provider data handling verified before sensitive use, so that cloud processing meets my privacy requirements.
 39. As a user, I want spoken instructions treated as content, so that recorded phrases cannot override processing rules.
 40. As a user, I want validation against my languages and speech patterns, so that provider selection is based on usable results.
+41. As the owner, I want a private HTTPS web deployment containing both frontend and backend, so that I can use SayLor without keeping my computer's local servers running.
+42. As the owner, I want authentication covering every hosted website and API URL, so that other visitors cannot use my free provider quota.
+43. As a user, I want local development to remain available, so that hosting changes do not remove the existing workflow.
 
 ## Implementation Decisions
 
@@ -72,7 +77,10 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 - Use React/Vite for the frontend and Hono on Node.js for the backend. Both run locally on Windows with one startup command. Pin compatible stable versions during authorized implementation.
 - Separate frontend capture/presentation from backend validation, credentials, orchestration, timeouts, and typed stage errors. Put provider-specific behavior behind replaceable adapters.
 - Shared contracts describe output choices, original transcription, result, processing stages, and failures. A single detected-language value must not imply that a mixed recording contains only one language.
-- Bind the backend to loopback and restrict access to the intended frontend. No cloud hosting, database, accounts, public API, or custom domain is needed for this release.
+- In local mode, bind the backend to loopback and restrict access to the intended local frontend. In hosted mode, run the same Hono routes in Node.js Vercel Functions and serve the Vite build from the same project. Keep the same `/api/transcribe` and `/api/process` contracts. No database, separate backend host or paid custom domain is required.
+- Use the Vercel Hobby plan and included `vercel.app` address for this personal, noncommercial deployment. Configure Vercel Authentication for all deployments, including production domains; verify unauthenticated website and API requests are blocked before adding live-use approval. Origin validation is not authentication. Do not enable paid upgrades or add-ons.
+- Allow only exact configured hosted origins and trusted platform-provided deployment hostnames; never allow arbitrary `*.vercel.app` domains or derive authorization from untrusted forwarded headers. Missing/invalid hosted configuration must fail closed. Keep local-only access defaults isolated from the hosted entry point.
+- Store `GROQ_API_KEY` in server-only Vercel environment configuration. Never bundle it, read a shipped `.env`, log request bodies, or persist audio/transcripts in hosted functions. Hosted processing adds Vercel to the request path; platform logging/retention controls must be reviewed before confidential use. Configure function duration above the bounded per-stage provider deadline and retain audio limits and no-paid-fallback behavior.
 - Require free software and free service plans. Optional styling can use free Tailwind CSS; paid component kits, paid trials, and required subscriptions are excluded. Existing hardware, internet, and electricity are outside the software/service budget.
 - Use the user's public GitHub repository, [narniagplus961127/saylor](https://github.com/narniagplus961127/saylor), as the source repository when repository work is authorized. The user reports protected rules and retains exclusive merge authority. Agents must not merge pull requests, enable automatic merging, bypass protections, or modify repository rules; prepare reviewable changes for the user instead. Protection settings have not been independently audited in this spec task.
 
@@ -138,11 +146,12 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 - Judge translations by semantic equivalence rather than exact strings. Do not infer mixed-language accuracy from one detected-language label.
 - Measure Stop-to-visible-final-result latency on representative 20-second clips, including both AI stages. Target five seconds; report actual timings and conditions. This is a measurable target, not a guaranteed cloud-service claim.
 - Validate one-command startup and the complete flow on Windows in a supported Chromium browser. Record browser/provider versions, account conditions, measured quality/latency, and limitations before declaring the MVP usable.
+- Verify the production-built frontend through the hosted function entry point with controlled provider responses, including upload, translation, rejected origins/hosts, invalid input and safe failures. Local simulation does not independently prove Vercel routing or authentication. After separately authorized preview deployment, verify real routing, HTTPS microphone access, unauthorized website/API denial, server-only secrets and the complete flow with no local server running. Production promotion remains a separate owner-approved step.
 
 ## Out of Scope
 
-- App implementation, dependency scaffolding, paid-service activation, and deployment during this specification task.
-- Hosted/public demo, remote access, accounts, synchronization, database, saved transcript/audio history.
+- Paid-service activation, public/unrestricted demo, application-managed account system, synchronization, database, and saved transcript/audio history.
+- Actual hosted deployment and production promotion during the currently authorized code-preparation step; perform these only after separate authorization and private-access verification.
 - Windows desktop packaging, global shortcuts, floating recorder, and insertion into other apps.
 - Mobile apps, custom keyboards, system-wide dictation, macOS support.
 - Continuous/real-time streaming, offline inference, system-audio capture, text-to-speech, simultaneous translation targets, and additional initial output choices.
@@ -165,3 +174,4 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
   - [Groq services agreement](https://console.groq.com/docs/legal/services-agreement)
   - [Gemini API terms](https://ai.google.dev/gemini-api/terms)
 - Local software uses free/open-source components; cloud inference is a separate quota-limited service. Future desktop/mobile distribution needs a separate cost review.
+- Hosted-phase clarification on 2026-10-15 supersedes the original local-only hosting exclusion. Prepare and test code first; retain ticket 06's failed quality gate. Reference current [Vercel Node.js functions](https://vercel.com/docs/functions/runtimes/node-js), [Hobby plan](https://vercel.com/docs/plans/hobby), and [Vercel Authentication](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication) when configuring the separately authorized deployment.

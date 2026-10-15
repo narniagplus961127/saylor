@@ -5,13 +5,17 @@ import { AppError } from './errors.js';
 import type { Provider } from './groq.js';
 import { MAX_AUDIO_BYTES, readWav } from './wav.js';
 
-export function createApp(provider: Provider, webPort = 5173, apiPort = 8787) {
+export function createApp(provider: Provider, webPort = 5173, apiPort = 8787, hostedOrigins?: readonly string[]) {
   const app = new Hono();
+  const origins = hostedOrigins ?? [`http://127.0.0.1:${webPort}`];
+  const hosts = hostedOrigins ? hostedOrigins.map(origin => new URL(origin).host) : [`127.0.0.1:${apiPort}`, `127.0.0.1:${webPort}`];
   app.use('/api/*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
     c.header('X-Content-Type-Options', 'nosniff');
-    if (![ `127.0.0.1:${apiPort}`, `127.0.0.1:${webPort}` ].includes(c.req.header('host') ?? '')) throw new AppError('forbidden', 'Local requests only.', 403);
-    if (c.req.method !== 'GET' && c.req.header('origin') !== `http://127.0.0.1:${webPort}`) throw new AppError('forbidden', `Open SayLor at http://127.0.0.1:${webPort}.`, 403);
+    const url = new URL(c.req.url);
+    if (!hosts.includes(c.req.header('host') ?? url.host) || !hosts.includes(url.host)) throw new AppError('forbidden', 'Use the configured SayLor address.', 403);
+    const origin = c.req.header('origin');
+    if (c.req.method !== 'GET' && (!origins.includes(origin ?? '') || (hostedOrigins && origin !== url.origin))) throw new AppError('forbidden', 'Open SayLor at its configured address.', 403);
     await next();
   });
   // Inspect upload bytes before returning a limit error so browser uploads receive the typed response.
