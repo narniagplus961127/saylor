@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
 
+test('choosing English after Chinese recording immediately translates the original without another upload', async ({ page, request }) => {
+  const provider = `http://127.0.0.1:${process.env.FAKE_GROQ_PORT || 9897}`;
+  await request.post(`${provider}/source-chinese`);
+  try {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start recording' }).click(); await page.waitForTimeout(700);
+    await page.getByRole('button', { name: 'Stop recording' }).click();
+    await expect(page.getByLabel('Your result')).toHaveValue('明天下午四点在吉隆坡见。不要取消会议。');
+    const submissions: unknown[] = [];
+    page.on('request', req => { if (/\/api\/(process|transcribe)$/.test(req.url())) submissions.push({ stage: req.url().split('/').at(-1), data: req.postDataJSON() }); });
+    await page.getByLabel('Output language').selectOption('en');
+    await expect(page.getByLabel('Your result')).toHaveValue('Meet in Kuala Lumpur tomorrow at 4 pm. Do not cancel the meeting.');
+    await expect(page.getByLabel('Original transcription')).toHaveValue('明天下午三点，不对，四点在吉隆坡见。不要取消会议。');
+    expect(submissions).toEqual([{ stage: 'process', data: { transcript: '明天下午三点，不对，四点在吉隆坡见。不要取消会议。', output: 'en' } }]);
+  } finally { await request.post(`${provider}/source-default`); }
+});
+
 test('Chinese translation preserves regional qualifiers and the uncertainty clause', async ({ request, baseURL }) => {
   const response = await request.post('/api/process', { headers: { Origin: baseURL! }, data: { transcript: 'Saya tidak pasti sama ada barang dari Afrika Barat tiba esok.', output: 'zh' } });
   expect(response.ok()).toBeTruthy();
@@ -13,8 +30,8 @@ test('a failed final Chinese pass preserves original and edits, and retry never 
   await page.getByLabel('Your result').fill('Keep my reviewed wording.');
   const submissions: string[] = []; page.on('request', req => { if (/\/api\/(transcribe|process)$/.test(req.url())) submissions.push(req.url().split('/').at(-1)!); });
   await request.post(`http://127.0.0.1:${process.env.FAKE_GROQ_PORT || 9897}/fail-after-draft`);
-  await page.getByLabel('Output language').selectOption('zh'); page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Generate again' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByLabel('Output language').selectOption('zh');
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByLabel('Your result')).toHaveValue('Keep my reviewed wording.');
   await expect(page.getByLabel('Original transcription')).toHaveValue('Um, send the report Thursday, sorry, Friday at three.');
@@ -32,7 +49,7 @@ test('Chinese-script dictation keeps exact name characters with one processing r
   expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ generations: 1 });
 });
 
-test('output selection is explicit, protects edits, and regenerates from the original transcription', async ({ page }) => {
+test('output selection protects edits and immediately translates the original transcription', async ({ page }) => {
   await page.goto('/');
   const output = page.getByLabel('Output language');
   await expect(output).toHaveValue('original');
@@ -43,15 +60,14 @@ test('output selection is explicit, protects edits, and regenerates from the ori
   const submissions: unknown[] = [];
   page.on('request', request => { if (request.url().endsWith('/api/process')) submissions.push(request.postDataJSON()); });
   await page.getByLabel('Your result').fill('My private edit.');
-  await output.selectOption('zh');
-  await page.waitForTimeout(150);
-  expect(submissions).toEqual([]);
   page.once('dialog', dialog => dialog.dismiss());
-  await page.getByRole('button', { name: 'Generate again' }).click();
+  await output.selectOption('zh');
   await expect(page.getByLabel('Your result')).toHaveValue('My private edit.');
+  await expect(output).toHaveValue('original');
+  expect(await page.evaluate(() => localStorage.getItem('saylor.output'))).toBeNull();
   expect(submissions).toEqual([]);
   page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Generate again' }).click();
+  await output.selectOption('zh');
   await expect(page.getByText('Translating', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Your result')).toHaveValue('星期五三点发送报告。');
   expect(submissions).toEqual([{ transcript: 'Um, send the report Thursday, sorry, Friday at three.', output: 'zh' }]);
@@ -75,7 +91,6 @@ test('all output choices reach the local API and failed regeneration retains the
   await expect(page.getByLabel('Your result')).toHaveValue('Send the report Friday at three.');
   for (const [output, expected] of [['ms', 'Hantar laporan pada hari Jumaat pukul tiga.'], ['original', 'Send the report Friday at three.'], ['en', 'Send the report Friday at three.']]) {
     await page.getByLabel('Output language').selectOption(output);
-    await page.getByRole('button', { name: 'Generate again' }).click();
     await expect(page.getByText('Ready to review', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Your result')).toHaveValue(expected);
   }

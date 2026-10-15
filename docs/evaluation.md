@@ -26,6 +26,8 @@ Reports are atomically saved to `.scratch/saylor/private/runs/<run>/report.json`
 
 ## Human scoring
 
+For the user-reported counting restart regression, start the intended current local API on 8787 with the frontend origin 5173, then explicitly run `pnpm.cmd evaluate:counting`. This optional live suite uses five fictional/non-sensitive text cases through `/api/process` and consumes the configured free provider quota. It is excluded from `pnpm check` and CI. It checks Chinese counting restarts with and without translation, the correctly transcribed Malay counting phrase, a quoted apology and Chinese-to-English appointment/negation preservation. It does not test recognition of the user's voice, recover missing ASR words, or replace the 20-recording gate. The suite has no automatic retries; if provider requests fail, resolve the error/quota before running it again.
+
 Fill each case's `review.transcription` against the frozen reference and `review.final` against intended meaning. List changed names, numbers, dates, negation or invented content in `review.criticalErrors`; explain uncertainty in `review.notes`. These fields survive resume. Recognized text never becomes ground truth. The tool leaves acceptance pending even if every request succeeds.
 
 The MVP gate remains at least 18/20 usable and zero critical errors on representative coverage, with competent language review. Existing read speech lacks natural trilingual speech, user accent, self-corrections, dictated structure and spoken override attempts. API-only stage timings also leave browser Stop-to-visible-result latency unmeasured; that needs representative 20-second speech in the browser.

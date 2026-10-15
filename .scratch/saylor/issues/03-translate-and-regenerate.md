@@ -10,7 +10,8 @@ Parent: SayLor — Personal Web MVP specification.
 - [x] Offer Keep original languages, English, Simplified Chinese, and Malay. Default first use to Keep original languages and remember the last choice locally without persisting transcript content.
 - [x] For a selected output language, clean same-language input or translate other-language input through the local API and accepted provider; preserve meaning, tone, names, numbers, dates, and negation.
 - [x] Preserve the original transcription independently of the editable result and show Cleaning or Translating progress as appropriate.
-- [x] Changing the choice after processing makes no automatic request. Generate again explicitly uses the original transcription, not the prior translation or edited result.
+- [x] After transcription, selecting a different output language immediately processes the original transcription, not a prior translation or edited result. No recording or extra Generate again click is required. Before any transcription, selection only saves a preference. Generate again repeats the current choice explicitly.
+- [x] Language selection asks before replacing manual edits; declining also retains the prior selection and saved preference. Failure preserves the original transcription and prior result, with explicit retry. New language selection is blocked during processing, recording and quota cooldown.
 - [x] Warn before replacing manual edits. Declining retains the edits and makes no replacement request; approving produces a new editable result that can be manually copied.
 - [x] Preserve existing text on generation failure. Do not re-transcribe audio merely to change the output language.
 - [x] Exercise all output choices and regeneration/edit protection through the approved browser-to-API seam with controlled responses. Cover semantic equivalence rather than exact translation strings in live evaluation.
@@ -24,3 +25,9 @@ Approved for local ticket publication on 2026-10-15. Ticket 04 separately comple
 ## Answer
 
 Implemented output selection and preference-only persistence, whole-message translation/cleanup, explicit regeneration from original transcription, manual-edit confirmation, failure preservation, and copying of the current edited result. Tested through the approved browser → local API seam with controlled Groq responses. All three translation checks and the original dictation check pass; typecheck and production build pass. Live semantic quality remains the separate ticket 06 release gate. No paid fallback, live provider requests, pushes, or merges were introduced.
+
+User steering on 2026-10-15 changes the previously resolved interaction: after speaking, selecting another output language must immediately translate the original transcription. The ticket was reopened while implementing this change. The earlier Answer records historical behavior and is superseded on this point. Generate again remains an explicit repeat action; edit warnings, preservation after failure, privacy and cost boundaries remain required.
+
+## Answer — revised language-selection workflow
+
+Selecting a new output language now immediately processes the original transcription. The Chinese-recording → English-selection browser regression failed before this change and passes afterward. Declining replacement keeps edits, selection and stored preference; approving translates without another upload. Failure preserves prior text and retry uses the failed target, including a newly selected target after an earlier failure. All 36 local controlled/tool checks pass (3 tool, 33 browser/API: 5 dictation, 7 translation, 7 multilingual, 14 recovery), with typecheck, build and credential scan. Five optional live text regressions also pass; representative speech-quality acceptance remains ticket 06. No merge, deployment or paid-service activation occurred.

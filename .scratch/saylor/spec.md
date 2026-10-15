@@ -17,7 +17,7 @@ Provide a local browser workspace where the user starts a recording, speaks for 
 
 Default dictation preserves the spoken languages while removing fillers and false starts, resolving natural self-corrections, and fixing punctuation and obvious grammar. Alternatively, select English, Simplified Chinese, or Malay for output in that language. Preserve meaning, tone, names, numbers, and dates. Format simple paragraphs and lists when explicitly dictated.
 
-The user reviews, edits, and manually copies the result. Changing output after processing requires Generate again using the original transcription, with a warning before replacing manual edits.
+The user reviews, edits, and manually copies the result. After transcription is available, selecting a different output language immediately processes the original transcription into that language. For example, Mandarin speech followed by selecting English produces English text without recording again or pressing Generate again. Ask before replacing manual edits; declining preserves the result, selected language and saved preference. Generate again remains available to repeat the current choice explicitly.
 
 Run the frontend and backend locally with one startup command. Use cloud AI only after free-plan, privacy, eligibility, and quality checks pass. Stop cleanly when free quotas are exhausted. Keep no saved recording/transcript history and never automatically switch to paid services.
 
@@ -51,7 +51,7 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 26. As a user, I want the original transcription visible beside the result, so that I can assess what changed.
 27. As a user, I want to edit the result, so that I control the final wording.
 28. As a user, I want an explicit Copy action, so that clipboard changes happen only when requested.
-29. As a user, I want explicit regeneration from the original transcription, so that I can change output without recording again.
+29. As a user, I want selecting an output language to immediately translate the original transcription, so that I can change output without recording again or pressing another button.
 30. As a user, I want a warning before regeneration replaces edits, so that my work is not silently lost.
 31. As a user, I want the transcription preserved when text processing fails, so that partial success remains useful.
 32. As a user, I want to retry only the failed stage, so that successful work is not unnecessarily repeated.
@@ -95,10 +95,11 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 - Output choices are Keep original languages, English, Simplified Chinese, and Malay. Default to Keep original languages on first use; remember the last choice locally.
 - Default dictation preserves language switches. A selected output language cleans same-language speech or translates other/mixed-language speech into that language while preserving the complete message.
 - Cleanup removes fillers, repetitions, and false starts, fixes punctuation and obvious grammar, and resolves explicit natural self-corrections. Preserve meaning and tone; do not add facts, infer email structure, or creatively rewrite.
+- A counting restart after a correction marker replaces the abandoned count with the restarted sequence, including correction markers in another language. Preserve the phrase introducing the count. Quoted apologies are not automatically corrections. Missing or corrupted speech-recognition content must not be invented during cleanup.
 - Names, numbers, dates, and negation preserve intended meaning. Semantically equivalent script/date formatting is acceptable; arbitrary substitutions are not.
 - Support simple explicitly dictated paragraph/list structure. Broader speech commands, snippets, and following recorded instructions are excluded.
 - Keep original transcription separate from the editable result. Original transcription is provider-recognized text, not a guarantee of verbatim ground truth.
-- Changing output choice does not itself make another request. Generate again uses the original transcription and warns before replacing manual edits; declining retains those edits.
+- Before transcription, output selection only saves the preference. After transcription, selecting a different output immediately processes the original transcription into that language. Warn before replacing manual edits; declining retains edits, selection and preference. Generate again explicitly repeats the current choice. Disable selection during recording, processing and quota cooldown; failures preserve original/prior text and require explicit retry or a new user-selected language, without another audio upload.
 - Copy acts only on explicit request and copies the current edited result. Clipboard failure must leave the text available.
 
 ### Privacy, lifecycle, and service budget
@@ -124,7 +125,7 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 
 - The user approved one primary behavioral seam: the complete browser → local API → result workflow, with controlled provider responses for repeatable checks and the agreed 20 real recordings for live quality/latency validation.
 - Good tests assert observable behavior, meaning preservation, stage outcomes, privacy, and cost boundaries. Avoid coupling tests to component internals, helper calls, exact prompt wording, or speculative module structure.
-- There is no existing app code or test suite to reuse. Choose free tooling during implementation. Vitest from the original draft is a candidate for API/workflow checks; browser-level checks must still exercise the user flow.
+- The implemented Playwright suites exercise the browser/local API workflow with controlled external provider responses. Tool checks use Node's test runner. Optional live text regressions exercise counting restarts and Chinese-to-English translation through the local API; these consume free quota and run separately from CI.
 - Exercise the UI and local API together where practical, replacing only the external provider boundary. Keep provider-specific response details out of frontend assertions.
 - Cover each output choice, mixed-language dictation, conservative cleanup, self-corrections, dictated paragraphs/lists, original/result separation, editing, copy, regeneration, and protection of edits.
 - Cover microphone denial/unavailability, silence, invalid/oversized audio, the 60-second cap, Cancel without submission, provider/network failure, timeout, and quota exhaustion.
@@ -152,7 +153,7 @@ Run the frontend and backend locally with one startup command. Use cloud AI only
 
 - The official name is SayLor. Earlier SayYor branding and the original draft's finalized cloud stack are superseded by confirmed conversation decisions.
 - This spec is published to the local Markdown tracker with ready-for-agent status as required by the invoked skill. That status describes the prepared spec; it does not waive provider prerequisites or authorize implementation.
-- Planning notes are preserved separately. User-specific speech/expected-output examples have not been supplied; populate the evaluation set during authorized validation rather than claiming it has passed.
+- Planning notes are preserved separately. The user supplied natural-speech screenshots and confirmed counting restarts and the intended Malay counting phrase. Use anonymized regression cases; screenshots without original audio cannot independently establish every spoken word, name spelling, latency or recognition error. Representative live acceptance remains open.
 - GitHub source repository creation does not change the configured local Markdown issue/spec tracker. No remote commits, pushes, or repository-rule changes were made by this spec task.
 - REA 6.5.0 installation and a direct MCP handshake were verified. REA inspected Wispr Flow's public page in an owned temporary browser. This establishes visible product claims and inspection capability, not internal architecture or speech accuracy.
 - Wispr Flow inspires basic cleanup and recording UX. SayLor's narrower scope and conservative meaning-preservation rules remain authoritative.

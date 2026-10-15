@@ -13,7 +13,11 @@ export function App() {
   const [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [output, setOutput] = useState<OutputChoice>(savedOutput), [generatedResult, setGeneratedResult] = useState('');
   const pendingOutput = useRef<OutputChoice>('original');
-  function chooseOutput(value: OutputChoice) { setOutput(value); try { localStorage.setItem('saylor.output', value); } catch { /* Preference storage is optional. */ } }
+  function chooseOutput(value: OutputChoice) {
+    if (value === output || busy.current || Date.now() < retryAt) return;
+    if (transcript && !regenerate(value)) return;
+    setOutput(value); try { localStorage.setItem('saylor.output', value); } catch { /* Preference storage is optional. */ }
+  }
   const [failedStage, setFailedStage] = useState<'transcription' | 'text' | null>(null);
   const [retryAt, setRetryAt] = useState(0), [now, setNow] = useState(Date.now());
   const pendingAudio = useRef<Blob | null>(null), pendingText = useRef(''), editVersion = useRef(0);
@@ -82,11 +86,12 @@ export function App() {
     } catch (cause) { if (id === attempt.current) fail(cause, failed); }
     finally { if (id === attempt.current) { busy.current = false; request.current = null; } }
   }
-  function regenerate() {
-    if (busy.current || !transcript || Date.now() < retryAt) return;
-    if (result !== generatedResult && !window.confirm('Generate again will replace your manual edits. Continue?')) return;
-    pendingAudio.current = null; pendingText.current = transcript; pendingOutput.current = output;
+  function regenerate(target: OutputChoice = output): boolean {
+    if (busy.current || !transcript || Date.now() < retryAt) return false;
+    if (result !== generatedResult && !window.confirm('Generating a new result will replace your manual edits. Continue?')) return false;
+    pendingAudio.current = null; pendingText.current = transcript; pendingOutput.current = target;
     busy.current = true; void run('text', ++attempt.current);
+    return true;
   }
   function retry() { if (busy.current || !failedStage || Date.now() < retryAt) return; if (failedStage === 'text' && result !== generatedResult && !window.confirm('Retry text processing will replace your manual edits. Continue?')) return; busy.current = true; void run(failedStage, ++attempt.current); }
   function cancel() { attempt.current++; request.current?.abort(); request.current = null; pendingAudio.current = null; pendingText.current = ''; recording.current?.cancel(); recording.current = null; busy.current = false; setFailedStage(null); setError(''); setStage(transcript || result ? 'ready' : 'idle'); setSeconds(0); setNotice('Recording discarded.'); }
@@ -101,7 +106,7 @@ export function App() {
     </section>
     {busyStage && <button className="secondary" onClick={cancel}>Cancel processing</button>}
     {error && <div className="error"><p role="alert">{error}</p>{failedStage && <button onClick={retry} disabled={busyStage || now < retryAt}>Retry {failedStage === 'text' ? 'text processing' : 'transcription'}</button>}{now < retryAt && <p>Retry available in {Math.ceil((retryAt - now) / 1000)} seconds.</p>}<button onClick={cancel}>Discard failed attempt</button></div>}
-    <div className="output-controls"><div><label htmlFor="output-language">Output language</label><select id="output-language" value={output} disabled={busyStage || stage === 'recording'} onChange={event => chooseOutput(event.target.value as OutputChoice)}><option value="original">Keep original languages</option><option value="en">English</option><option value="zh">Simplified Chinese</option><option value="ms">Malay</option></select></div><p>Choose a language, then generate when you’re ready.</p><button className="secondary" disabled={!transcript || busyStage || stage === 'recording' || now < retryAt} onClick={() => void regenerate()}>Generate again</button></div>
+    <div className="output-controls"><div><label htmlFor="output-language">Output language</label><select id="output-language" value={output} disabled={busyStage || stage === 'recording' || now < retryAt} onChange={event => chooseOutput(event.target.value as OutputChoice)}><option value="original">Keep original languages</option><option value="en">English</option><option value="zh">Simplified Chinese</option><option value="ms">Malay</option></select></div><p>Choose a language to translate your words.</p><button className="secondary" disabled={!transcript || busyStage || stage === 'recording' || now < retryAt} onClick={() => void regenerate()}>Generate again</button></div>
     <div className="workspace">
       <section className="text-panel original"><div className="panel-header"><label htmlFor="original">Original transcription</label><span>AS YOU SAID IT</span></div><textarea id="original" aria-label="Original transcription" readOnly value={transcript} placeholder="Your spoken words will appear here…" /><p className="panel-note">A reference to help you review.</p></section>
       <section className="text-panel result"><div className="panel-header"><label htmlFor="result">Your result</label><span>LIGHTLY POLISHED</span></div><textarea id="result" aria-label="Your result" value={result} onChange={event => { editVersion.current++; setResult(event.target.value); setNotice(''); }} placeholder="A little clearer. Still entirely you." disabled={busyStage} /><div className="result-footer"><span>Make any edits before copying.</span><button className="copy" disabled={!result || busyStage} onClick={() => void copy()}>Copy result <span aria-hidden="true">⧉</span></button></div></section>

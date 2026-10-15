@@ -95,15 +95,16 @@ test('cancelled in-flight processing cannot overwrite newer manual work and dupl
   await expect(page.getByLabel('Your result')).toHaveValue('Keep my manual work.');
   expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ transcriptions: 1, generations: 0 });
 });
-test('failed translation retries its selected output even when the preference changes', async ({ page, request }) => {
+test('selecting a new language after failure starts text only and retry uses the new choice', async ({ page, request }) => {
   await request.post(`${provider}/control`, { data: { mode: 'text-failure' } });
   await page.goto('/'); await page.getByLabel('Output language').selectOption('zh'); await record(page);
   await expect(page.getByRole('button', { name: 'Retry text processing' })).toBeVisible();
   await page.getByLabel('Output language').selectOption('ms');
+  await expect(page.getByRole('button', { name: 'Retry text processing' })).toBeVisible();
   await request.post(`${provider}/control`, { data: {} });
   await page.getByRole('button', { name: 'Retry text processing' }).click();
-  await expect(page.getByLabel('Your result')).toHaveValue('星期五三点发送报告。');
-  expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ transcriptions: 0, generations: 2 });
+  await expect(page.getByLabel('Your result')).toHaveValue('Hantar laporan pada hari Jumaat pukul tiga.');
+  expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ transcriptions: 0, generations: 1 });
 });
 
 

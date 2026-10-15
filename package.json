@@ -9,6 +9,7 @@
     "test": "node scripts/test.mjs",
     "test:multilingual": "playwright test --config playwright.multilingual.config.ts",
     "evaluate": "node scripts/evaluate.mjs",
+    "evaluate:counting": "node --test scripts/live/counting.test.mjs",
     "test:tools": "node --test scripts/tests/*.test.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "check": "node scripts/check.mjs"
