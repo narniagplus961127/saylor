@@ -103,7 +103,7 @@ test('failed translation retries its selected output even when the preference ch
   await request.post(`${provider}/control`, { data: {} });
   await page.getByRole('button', { name: 'Retry text processing' }).click();
   await expect(page.getByLabel('Your result')).toHaveValue('星期五三点发送报告。');
-  expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ transcriptions: 0, generations: 1 });
+  expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ transcriptions: 0, generations: 2 });
 });
 
 

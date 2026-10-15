@@ -1,5 +1,37 @@
 import { test, expect } from '@playwright/test';
 
+test('Chinese translation preserves regional qualifiers and the uncertainty clause', async ({ request, baseURL }) => {
+  const response = await request.post('/api/process', { headers: { Origin: baseURL! }, data: { transcript: 'Saya tidak pasti sama ada barang dari Afrika Barat tiba esok.', output: 'zh' } });
+  expect(response.ok()).toBeTruthy();
+  expect((await response.json()).result).toBe('我不确定来自西非的货物是否明天到达。');
+});
+
+test('a failed final Chinese pass preserves original and edits, and retry never uploads audio again', async ({ page, request }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Start recording' }).click(); await page.waitForTimeout(1200);
+  await page.getByRole('button', { name: 'Stop recording' }).click();
+  await expect(page.getByLabel('Your result')).toHaveValue('Send the report Friday at three.');
+  await page.getByLabel('Your result').fill('Keep my reviewed wording.');
+  const submissions: string[] = []; page.on('request', req => { if (/\/api\/(transcribe|process)$/.test(req.url())) submissions.push(req.url().split('/').at(-1)!); });
+  await request.post(`http://127.0.0.1:${process.env.FAKE_GROQ_PORT || 9897}/fail-after-draft`);
+  await page.getByLabel('Output language').selectOption('zh'); page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Generate again' }).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByLabel('Your result')).toHaveValue('Keep my reviewed wording.');
+  await expect(page.getByLabel('Original transcription')).toHaveValue('Um, send the report Thursday, sorry, Friday at three.');
+  page.once('dialog', dialog => dialog.accept()); await page.getByRole('button', { name: 'Retry text processing' }).click();
+  await expect(page.getByLabel('Your result')).toHaveValue('星期五三点发送报告。');
+  expect(submissions).toEqual(['process', 'process']);
+});
+
+test('Chinese-script dictation keeps exact name characters with one processing request', async ({ request, baseURL }) => {
+  const provider = `http://127.0.0.1:${process.env.FAKE_GROQ_PORT || 9897}`;
+  await request.post(`${provider}/reset-counts`);
+  const response = await request.post('/api/process', { headers: { Origin: baseURL! }, data: { transcript: '郝玥明天下午四点见，费用42令吉。不要取消。', output: 'zh' } });
+  expect(response.ok()).toBeTruthy();
+  expect((await response.json()).result).toBe('郝玥明天下午四点见，费用42令吉。不要取消。');
+  expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ generations: 1 });
+});
+
 test('output selection is explicit, protects edits, and regenerates from the original transcription', async ({ page }) => {
   await page.goto('/');
   const output = page.getByLabel('Output language');
