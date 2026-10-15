@@ -57,3 +57,17 @@ A separate `whisper-large-v3` candidate used the same segmented inputs and outpu
 - Keep raw audio/results and credentials out of public commits. No paid activation, deployment, push, merge or protection change is authorized by this report.
 
 Baseline tool versions: Node.js 24.20, pnpm 12.8.1, TypeScript 7.0.2 and Playwright 1.64.1. Final browser/runtime and integrated checks must be recorded before closing ticket 06.
+
+## Integrated implementation verification
+
+The resumed implementation completes tickets 02–05 on `codex/saylor-integration`. Automated suites exercise the actual web/API boundary with controlled external-provider responses, including selected-output retries, confirmation before replacing edits, quota cooldown, partial success, cancellation and stale responses. Live AI semantic quality remains a separate failed gate.
+
+Desktop (1440 × 1000) and narrow viewport (390 × 844) inspection used Chrome 155.0.0.0 on Windows. The narrow document width was 390 px, with no horizontal overflow. The page showed separate original/result panels, output selection and explicit record/generate/copy controls. A missing favicon request was removed. This viewport check does not establish native mobile microphone support.
+
+Privacy source review found only `saylor.output` persisted in localStorage; no content/history storage or application payload logging was found in apps/packages. The root key was scanned against 58 tracked files and all three production browser-build files, with zero matches. The browser build is generated separately from server `.env` loading. Controlled tests cover refresh clearing content, forbidden-origin/invalid-audio responses and no-store errors. Request buffers remain transient; provider privacy settings rely on the user's confirmation.
+
+No push, merge, deployment or paid-service activation was performed. Failed quality acceptance remains open; these functional/privacy checks do not weaken its criteria.
+
+Final combined verification at `4859db19d653fda1751e5c7267b8d4bc0322a7f2`: **25 browser/API checks passed** (4 dictation, 3 translation, 5 multilingual, 13 recovery), `pnpm typecheck` passed and `pnpm build` passed. Playwright 1.64.1 uses bundled Chromium revision 1248 (browser metadata 156.0.8078.4); separate layout inspection used Chrome 155.0.0.0. Regression checks include a nonempty token-truncated completion, preserved original/edited result, and text-only retry. Completion must explicitly finish with `stop`; incomplete responses are no longer presented as success. See [review](code-review.md).
+
+Implementation and repeatable workflow checks are complete for tickets 02–05. Ticket 06 remains claimed because live quality, natural speech coverage and full browser latency requirements have not passed. Remaining work is provider/segmentation quality investigation and representative speech evaluation when free capacity is available, followed by a new frozen acceptance run; changing the reference answers or weakening the gate is excluded.

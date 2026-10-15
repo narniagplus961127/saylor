@@ -24,3 +24,5 @@ Parent: SayLor — Personal Web MVP specification.
 Approved for local ticket publication on 2026-10-15. This verifies the combined vertical slices; it does not replace each ticket's own behavioral checks.
 
 Validation resumed on 2026-10-15. The frozen public read-speech baseline completed 20 real API pipelines but provisionally scores only 10/20 usable with nine critical failures and one substantive omission. References were preserved. See [acceptance report](../acceptance-report.md) for per-case evidence, API-only timings, coverage limits and outstanding integrated verification. This ticket cannot close: the quality gate fails and natural trilingual/user-accent coverage and full browser latency remain unverified.
+
+Integrated verification at `4859db1`: all 25 controlled browser/API checks, typecheck and build pass. Key scans of tracked files and production browser assets found no matches. See [acceptance report](../acceptance-report.md) for exact evidence. Quality acceptance still fails; this ticket remains claimed and must not be closed based on functional tests alone.

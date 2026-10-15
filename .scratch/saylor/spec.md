@@ -1,8 +1,8 @@
 # SayLor — Personal Web MVP
 
-Status: ready-for-agent
+Status: claimed
 Implementation authorization: Authorized by the user's implement-spec invocation on 2026-10-15, subject to the provider prerequisite and ticket dependencies. Paid services, deployment, merges, and protection changes remain unauthorized.
-Provider gate: Preliminary selection completed on 2026-10-15 with user-confirmed Free/ZDR settings and user-waived eligibility clarification. Candidate pipeline: Whisper Large V3 Turbo plus GPT-OSS 120B. Final release-quality and privacy checks remain ticket 06.
+Provider gate: Preliminary selection completed on 2026-10-15 with user-confirmed Free/ZDR settings and user-waived eligibility clarification. Candidate pipeline: Whisper Large V3 Turbo plus GPT-OSS 120B. Functional implementation is integrated; final release-quality acceptance remains failed/open in ticket 06. See acceptance-report.md.
 Updated: 2026-10-15
 
 ## Problem Statement
