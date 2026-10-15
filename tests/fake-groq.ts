@@ -11,7 +11,7 @@ createServer(async (req, res) => {
   if (mode === 'timeout') { await new Promise(resolve => setTimeout(resolve, 21000)); res.end('{}'); return; }
   await new Promise(resolve => setTimeout(resolve, mode === 'slow' ? 3000 : 900));
   if ((audio && mode === 'audio-failure') || (!audio && mode === 'text-failure')) { res.statusCode = 503; res.end('{}'); return; }
-  if (mode === 'quota') { res.statusCode = 429; res.setHeader('Retry-After', '3'); res.end('{}'); return; }
+  if (mode === 'quota') { res.statusCode = 429; res.setHeader('Retry-After', '3'); res.setHeader('x-ratelimit-remaining-requests', '0'); res.setHeader('x-ratelimit-reset-requests', '3s'); res.setHeader('x-provider-secret', 'test-only-key'); res.end('{}'); return; }
   if (audio) res.end(JSON.stringify({ text: mode === 'no-speech' ? '' : 'Um, send the report Thursday, sorry, Friday at three.' }));
   else if (req.url === '/openai/v1/chat/completions') {
     const instructions = JSON.parse(body).messages[0].content as string;

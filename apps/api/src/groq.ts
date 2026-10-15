@@ -20,7 +20,12 @@ export function groqProvider(key: string | undefined, baseUrl = 'https://api.gro
         const retry = response.headers.get('retry-after');
         const numeric = Number(retry);
         const value = retry && !Number.isFinite(numeric) ? (Date.parse(retry) - Date.now()) / 1000 : numeric;
-        throw new AppError('quota', 'The free service limit was reached. Wait before trying again. No paid fallback was used.', 429, Number.isFinite(value) && value > 0 ? Math.ceil(value) : undefined);
+        const rateLimits: Record<string, string> = {};
+        for (const name of ['x-ratelimit-limit-requests', 'x-ratelimit-remaining-requests', 'x-ratelimit-reset-requests', 'x-ratelimit-limit-tokens', 'x-ratelimit-remaining-tokens', 'x-ratelimit-reset-tokens']) {
+          const header = response.headers.get(name);
+          if (header && header.length <= 128 && /^[0-9a-zA-Z. :+-]+$/.test(header)) rateLimits[name] = header;
+        }
+        throw new AppError('quota', 'The free service limit was reached. Wait before trying again. No paid fallback was used.', 429, Number.isFinite(value) && value > 0 ? Math.ceil(value) : undefined, rateLimits);
       }
       if (response.status === 401 || response.status === 403) throw new AppError('configuration', 'The AI service rejected the API key. Check your local configuration.', 503);
       throw new AppError('unavailable', 'The AI service could not complete this request. Please try again.', 502);

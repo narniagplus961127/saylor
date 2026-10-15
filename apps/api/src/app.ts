@@ -37,6 +37,7 @@ export function createApp(provider: Provider, webPort = 5173, apiPort = 8787) {
   app.onError((error, c) => {
     const safe = error instanceof AppError ? error : new AppError('unavailable', 'The request could not be completed.', 500);
     if (safe.retryAfter) c.header('Retry-After', String(safe.retryAfter));
+    for (const [name, value] of Object.entries(safe.rateLimits)) c.header(name, value);
     return c.json({ error: { code: safe.code, message: safe.message, ...(safe.retryAfter ? { retryAfter: safe.retryAfter } : {}) } }, safe.status);
   });
   return app;

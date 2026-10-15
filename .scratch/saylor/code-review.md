@@ -10,7 +10,7 @@ One optional heuristic: possible Duplicated Code in frontend recorder normalizat
 
 ## Spec
 
-One implementation issue was found: the text provider adapter accepted nonempty completions without checking `finish_reason`. A response ending because of the token limit could silently lose trailing dictated content, violating the requirement to preserve the complete message. A regression and fix are being applied to reject incomplete completions as a retryable text-stage failure while keeping original and prior result.
+One implementation issue was found: the text provider adapter accepted nonempty completions without checking `finish_reason`. A response ending because of the token limit could silently lose trailing dictated content, violating the requirement to preserve the complete message. A regression and fix were applied (see verification below) to reject incomplete completions as a retryable text-stage failure while keeping original and prior result.
 
 The separate live acceptance gap remains: 10/20 usable, nine critical errors, natural trilingual coverage and full browser latency unverified. See [acceptance evidence](acceptance-report.md). No scope creep was identified.
 

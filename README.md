@@ -25,12 +25,12 @@ Both servers bind to loopback. The Hono API listens on port 8787 and accepts mut
 
 ```powershell
 pnpm exec playwright install chromium
-pnpm test
-pnpm typecheck
-pnpm build
+pnpm check
 ```
 
 `pnpm test` runs dictation, translation, multilingual and recovery suites sequentially on isolated ports. Browser tests launch the actual frontend and API, a synthetic browser microphone and a local fake Groq server. They use a dummy key and never call the live provider. `FAKE_GROQ_PORT`, `WEB_PORT` and `API_PORT` allow parallel worktrees to use different ports. Tests observe the user workflow rather than component internals. A production build checks the web bundle; daily local startup remains `pnpm dev`.
+
+`pnpm check` runs the tool checks, type checking, all workflow suites, production build and credential scan. The GitHub Actions workflow runs the same command with dummy credentials. It does not run live speech evaluation. See [local operations](docs/agents/operations.md) and [resumable evaluation](docs/evaluation.md). `pnpm check:secrets --build` scans tracked/unignored working files and the browser build, including the locally configured key when present, without printing matching values. It is a targeted Groq/private-key check, not a general secret-detection service.
 
 ## Boundaries
 

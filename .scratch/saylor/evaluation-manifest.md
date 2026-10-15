@@ -1,6 +1,6 @@
 # SayLor public recording evaluation manifest
 
-Prepared: 2026-10-15 (Asia/Kuala_Lumpur). **Data prepared; no inference or app evaluation performed.**
+Prepared: 2026-10-15 (Asia/Kuala_Lumpur). Frozen reference preparation record. Subsequent inference results are recorded separately in [the acceptance report](acceptance-report.md). Machine-readable references: [evaluation-manifest.json](evaluation-manifest.json).
 
 ## Attribution and provenance
 

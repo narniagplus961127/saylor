@@ -1,4 +1,14 @@
 import { test, expect } from '@playwright/test';
+test('quota diagnostics expose only safe retry metadata through the local API', async ({ request, baseURL }) => {
+  await request.post(`http://127.0.0.1:${process.env.FAKE_GROQ_PORT || 10097}/control`, { data: { mode: 'quota' } });
+  const response = await request.post('/api/process', { headers: { Origin: baseURL! }, data: { transcript: 'Non-sensitive text.', output: 'original' } });
+  expect(response.status()).toBe(429);
+  expect(response.headers()['retry-after']).toBe('3');
+  expect(response.headers()['x-ratelimit-remaining-requests']).toBe('0');
+  expect(response.headers()['x-ratelimit-reset-requests']).toBe('3s');
+  expect(response.headers()['x-provider-secret']).toBeUndefined();
+  expect(await response.text()).not.toContain('test-only-key');
+});
 const provider = `http://127.0.0.1:${process.env.FAKE_GROQ_PORT || 9797}`;
 async function record(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Start recording' }).click();

@@ -49,14 +49,13 @@ Fixed non-sensitive mixed-language text about meeting tomorrow at 3 p.m. in Kual
 
 A separate `whisper-large-v3` candidate used the same segmented inputs and output assignments. Eleven cases completed before the operator reported HTTP 429 on case 12 and stopped, without automatic retry or paid fallback. It improved case 01 but retained Galapagos corruption, the missing 20 in the score and the temperature mistranslation; it additionally lost the “none hurt” predicate on case 03 and Antarctic on case 07. This partial candidate does not establish an improvement sufficient for adoption and does not replace the frozen Turbo baseline. Further live evaluation and full browser latency remain unfinished after the free-quota stop.
 
-- Finish integrated controlled-provider browser suites and Standards/Spec review; record final commit, check counts and exact browser version. Isolated ticket checks are not final combined verification.
 - Evaluate justified model/segmentation changes separately, without reference answers in prompts; a stronger model is not a proven fix until observed.
 - Obtain held-out natural trilingual speech, user accent, self-corrections, dictated structure and spoken override attempts. Read speech and joined speakers leave these untested.
-- Measure browser latency and verify final credential isolation, production assets, content persistence, logging and audio/microphone lifecycle. Account settings and application privacy need separate evidence.
+- Measure full browser Stop-to-visible-result latency on representative speech; integrated privacy evidence is recorded below.
 - User confirms Free plan, billing/auto-recharge disabled and ZDR for speech/chat. Further eligibility/support clarification was explicitly waived: this is a user-accepted assumption, not provider confirmation. No support inquiry is required here.
 - Keep raw audio/results and credentials out of public commits. No paid activation, deployment, push, merge or protection change is authorized by this report.
 
-Baseline tool versions: Node.js 24.20, pnpm 12.8.1, TypeScript 7.0.2 and Playwright 1.64.1. Final browser/runtime and integrated checks must be recorded before closing ticket 06.
+Baseline tool versions: Node.js 24.20, pnpm 12.8.1, TypeScript 7.0.2 and Playwright 1.64.1. Integrated browser/runtime and check results are recorded below. Live quality and coverage must pass before closing ticket 06.
 
 ## Integrated implementation verification
 
