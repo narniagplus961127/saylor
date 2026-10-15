@@ -1,6 +1,6 @@
 # 04: Support multilingual dictation and dictated structure
 
-Status: claimed
+Status: resolved
 Blocked by: 02 — Complete the first local dictation flow.
 Execution: Authorized by implement-spec on 2026-10-15; waits for its blocking ticket.
 Parent: SayLor — Personal Web MVP specification.
@@ -26,3 +26,7 @@ Implemented automatic PCM16 WAV pause segmentation with ordered transcription an
 Automated evidence: `pnpm test:multilingual` passes five controlled-provider checks: ordered Mandarin/Malay/mixed segments through the public API; quiet audio versus digital silence; and three complete microphone/browser/API flows that show original transcription separately from an editable result. The mixed API fixture also checks Chinese/Malay self-correction response preservation and unchanged mixed-language names/numbers/negation. These fixtures verify data flow, not AI model accuracy. Both the original browser workflow, TypeScript checks and production build pass.
 
 Common multilingual cleanup and explicitly dictated structure instructions are supplied with ticket 03's process-method change; keep this ticket claimed until that integration and the parent's non-sensitive live smoke check complete. The provider report records earlier real segmented public-audio screening. Natural within-sentence switching, the user's accents and the separate 20-recording quality/latency gate remain unproven and must not be reported as passed.
+
+## Answer
+
+Ticket 03 and 04 implementation is integrated at `f4f708bf18670601386f1bdd0b25d1c89f8daeb3`. The live 22.34-second artificial English/Mandarin/Malay recording completed both API stages with HTTP 200, retained language order and the expected satellite/Amazon/six-miles/Central-America/duty-free meaning, and cleaned punctuation. API pipeline time was 1,833 ms; this excludes browser latency. Three separate mixed-text translations preserved Kuala Lumpur, tomorrow, 3 p.m. and two copies in English/Chinese/Malay. These establish implementation and limited live screening, not generalized recognition accuracy. The frozen 20-clip baseline fails release quality; ticket 06 remains unresolved with details in [acceptance report](../acceptance-report.md).
