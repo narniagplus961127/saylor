@@ -1,6 +1,6 @@
 # 04: Support multilingual dictation and dictated structure
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02 — Complete the first local dictation flow.
 Execution: Authorized by implement-spec on 2026-10-15; waits for its blocking ticket.
 Parent: SayLor — Personal Web MVP specification.
@@ -20,3 +20,9 @@ Parent: SayLor — Personal Web MVP specification.
 ## Comments
 
 Approved for local ticket publication on 2026-10-15. This expands the first complete dictation flow rather than building an isolated language configuration layer.
+
+Implemented automatic PCM16 WAV pause segmentation with ordered transcription and no forced source language. Each upload remains limited to 60 seconds, segmentation makes at most 12 sequential external requests, and all share one 20-second deadline. There are no automatic retries or fallback providers. Validation rejects near digital silence rather than excluding intelligible quiet recordings.
+
+Automated evidence: `pnpm test:multilingual` passes five controlled-provider checks: ordered Mandarin/Malay/mixed segments through the public API; quiet audio versus digital silence; and three complete microphone/browser/API flows that show original transcription separately from an editable result. The mixed API fixture also checks Chinese/Malay self-correction response preservation and unchanged mixed-language names/numbers/negation. These fixtures verify data flow, not AI model accuracy. Both the original browser workflow, TypeScript checks and production build pass.
+
+Common multilingual cleanup and explicitly dictated structure instructions are supplied with ticket 03's process-method change; keep this ticket claimed until that integration and the parent's non-sensitive live smoke check complete. The provider report records earlier real segmented public-audio screening. Natural within-sentence switching, the user's accents and the separate 20-recording quality/latency gate remain unproven and must not be reported as passed.

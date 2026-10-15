@@ -1,13 +1,14 @@
 import type { OutputChoice } from '@saylor/contracts';
 import { AppError } from './errors.js';
+import { transcriptionSegments } from './wav.js';
 
 export interface Provider { transcribe(wav: Uint8Array): Promise<string>; process(transcript: string, output: OutputChoice): Promise<string>; }
 export function groqProvider(key: string | undefined, baseUrl = 'https://api.groq.com/openai/v1'): Provider {
-  async function request(path: string, body: FormData | string): Promise<unknown> {
+  async function request(path: string, body: FormData | string, signal = AbortSignal.timeout(20_000)): Promise<unknown> {
     if (!key) throw new AppError('configuration', 'Add GROQ_API_KEY to the root .env file and restart SayLor.', 503);
     let response: Response;
     try {
-      response = await fetch(`${baseUrl}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${key}`, ...(typeof body === 'string' ? { 'Content-Type': 'application/json' } : {}) }, body, signal: AbortSignal.timeout(20_000) });
+      response = await fetch(`${baseUrl}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${key}`, ...(typeof body === 'string' ? { 'Content-Type': 'application/json' } : {}) }, body, signal });
     } catch (error) {
       if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) throw new AppError('timeout', 'The AI service took too long. Please try again.', 504);
       throw new AppError('unavailable', 'The AI service could not be reached. Check your connection.', 503);
@@ -26,13 +27,18 @@ export function groqProvider(key: string | undefined, baseUrl = 'https://api.gro
   }
   return {
     async transcribe(wav) {
-      const form = new FormData();
-      form.set('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'recording.wav');
-      form.set('model', 'whisper-large-v3-turbo'); form.set('response_format', 'json'); form.set('temperature', '0');
-      const response = await request('/audio/transcriptions', form) as { text?: unknown };
-      if (typeof response.text !== 'string' || response.text.length > 12000) throw new AppError('unavailable', 'The AI service returned an invalid transcription.', 502);
-      if (!response.text.trim()) throw new AppError('no_speech', 'No speech was recognized. Please try another recording.', 422);
-      return response.text.trim();
+      const signal = AbortSignal.timeout(20_000), texts: string[] = [];
+      for (const segment of transcriptionSegments(wav)) {
+        const form = new FormData();
+        form.set('file', new Blob([new Uint8Array(segment)], { type: 'audio/wav' }), 'recording.wav');
+        form.set('model', 'whisper-large-v3-turbo'); form.set('response_format', 'json'); form.set('temperature', '0');
+        const response = await request('/audio/transcriptions', form, signal) as { text?: unknown };
+        if (typeof response?.text !== 'string' || response.text.length > 12000) throw new AppError('unavailable', 'The AI service returned an invalid transcription.', 502);
+        if (!response.text.trim()) throw new AppError('no_speech', 'No speech was recognized. Please try another recording.', 422);
+        texts.push(response.text.trim());
+        if (texts.join('\n').length > 12000) throw new AppError('unavailable', 'The AI service returned an invalid transcription.', 502);
+      }
+      return texts.join('\n');
     },
     async process(transcript, output) {
       const language = output === 'en' ? 'English' : output === 'zh' ? 'Simplified Chinese' : 'Malay';

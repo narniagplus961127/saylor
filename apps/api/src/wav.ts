@@ -1,6 +1,44 @@
 import { AppError } from './errors.js';
 export const MAX_AUDIO_BYTES = 1_920_044;
 export interface PcmAudio { bytes: Uint8Array; samples: Int16Array; duration: number; }
+const SAMPLE_RATE = 16000;
+
+function encodePcm(samples: Int16Array): Uint8Array {
+  const bytes = new Uint8Array(44 + samples.length * 2);
+  const view = new DataView(bytes.buffer);
+  const tag = (offset: number, value: string) => [...value].forEach((letter, index) => view.setUint8(offset + index, letter.charCodeAt(0)));
+  tag(0, 'RIFF'); view.setUint32(4, bytes.length - 8, true); tag(8, 'WAVE'); tag(12, 'fmt ');
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, SAMPLE_RATE, true); view.setUint32(28, SAMPLE_RATE * 2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true); tag(36, 'data'); view.setUint32(40, samples.length * 2, true);
+  samples.forEach((sample, index) => view.setInt16(44 + index * 2, sample, true));
+  return bytes;
+}
+
+// Pause segmentation reduces whole-clip language bias. These screening-derived
+// thresholds do not establish accuracy for natural within-sentence code switches.
+// At most 12 sequential subrequests; never discard samples or force a language.
+export function transcriptionSegments(bytes: Uint8Array): Uint8Array[] {
+  const { samples } = readWav(bytes);
+  const frame = 320, minimum = 4 * SAMPLE_RATE, quietMinimum = 0.30 * SAMPLE_RATE;
+  const boundaries = [0];
+  let quietStart: number | undefined;
+  const considerPause = (quietEnd: number) => {
+    if (quietStart === undefined || quietStart === 0 || quietEnd - quietStart < quietMinimum || boundaries.length >= 12) return;
+    const middle = Math.floor((quietStart + quietEnd) / 2);
+    if (middle - boundaries[boundaries.length - 1] >= minimum && samples.length - middle >= minimum) boundaries.push(middle);
+  };
+  for (let offset = 0; offset < samples.length; offset += frame) {
+    const end = Math.min(offset + frame, samples.length);
+    let energy = 0;
+    for (let index = offset; index < end; index++) energy += (samples[index] / 32768) ** 2;
+    if (Math.sqrt(energy / (end - offset)) < 0.008) quietStart ??= offset;
+    else { considerPause(offset); quietStart = undefined; }
+  }
+  // A trailing quiet run cannot separate two speech spans.
+  boundaries.push(samples.length);
+  return boundaries.length === 2 ? [bytes] : boundaries.slice(1).map((end, index) => encodePcm(samples.subarray(boundaries[index], end)));
+}
 // Only the format normalized by our recorder is accepted. Never truncate an upload.
 export function readWav(bytes: Uint8Array): PcmAudio {
   const invalid = () => new AppError('invalid_input', 'Use a mono 16 kHz PCM16 WAV recording of up to 60 seconds.');
@@ -28,6 +66,8 @@ export function readWav(bytes: Uint8Array): PcmAudio {
   const pcm = new DataView(data.buffer, data.byteOffset, data.byteLength);
   let energy = 0;
   for (let i = 0; i < samples.length; i++) { samples[i] = pcm.getInt16(i * 2, true); energy += (samples[i] / 32768) ** 2; }
-  if (Math.sqrt(energy / samples.length) < 0.001) throw new AppError('no_speech', 'No speech detected. Try speaking closer to your microphone.', 422);
+  // Only reject near digital silence here. Absolute speech-volume thresholds
+  // reject intelligible quiet recordings; recognition remains the provider's job.
+  if (Math.sqrt(energy / samples.length) < 0.00003) throw new AppError('no_speech', 'No speech detected. Try speaking closer to your microphone.', 422);
   return { bytes, samples, duration: samples.length / 16000 };
 }
