@@ -16,7 +16,7 @@ createServer(async (req, res) => {
   else if (req.url === '/openai/v1/chat/completions') {
     const instructions = JSON.parse(body).messages[0].content as string;
     const content = instructions.includes('target language: Simplified Chinese') ? '星期五三点发送报告。' : instructions.includes('target language: Malay') ? 'Hantar laporan pada hari Jumaat pukul tiga.' : 'Send the report Friday at three.';
-    res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+    res.end(JSON.stringify({ choices: [{ finish_reason: mode === 'truncated-text' ? 'length' : 'stop', message: { content: mode === 'truncated-text' ? 'Send the' : content } }] }));
   }
   else { res.statusCode = 404; res.end('{}'); }
 }).listen(Number(process.env.FAKE_GROQ_PORT || 9797), '127.0.0.1');

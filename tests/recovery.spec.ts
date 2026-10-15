@@ -114,3 +114,18 @@ test('text retry warns before replacing edits made after failed regeneration', a
   await page.getByRole('button', { name: 'Retry text processing' }).click();
   await expect(page.getByLabel('Your result')).toHaveValue('Send the report Friday at three.');
 });
+test('truncated provider output is a retryable text failure and cannot replace useful work', async ({ page, request }) => {
+  await request.post(`${provider}/control`, { data: {} }); await page.goto('/'); await record(page);
+  await page.getByLabel('Your result').fill('Preserve this completed edit.');
+  await request.post(`${provider}/control`, { data: { mode: 'truncated-text' } });
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Generate again' }).click();
+  await expect(page.getByRole('alert')).toContainText('incomplete');
+  await expect(page.getByLabel('Your result')).toHaveValue('Preserve this completed edit.');
+  await expect(page.getByLabel('Original transcription')).toHaveValue('Um, send the report Thursday, sorry, Friday at three.');
+  await request.post(`${provider}/control`, { data: {} });
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Retry text processing' }).click();
+  await expect(page.getByLabel('Your result')).toHaveValue('Send the report Friday at three.');
+  expect(await (await request.get(`${provider}/counts`)).json()).toEqual({ transcriptions: 0, generations: 1 });
+});
