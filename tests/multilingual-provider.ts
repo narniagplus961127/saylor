@@ -15,6 +15,12 @@ createServer(async (req, res) => {
     if (form.has('language')) { res.statusCode = 400; res.end('{}'); return; }
     const file = form.get('file') as File;
     const wav = new DataView(await file.arrayBuffer());
+    if (language === 'soft-span') {
+      let peak = 0;
+      for (let offset = 44; offset < wav.byteLength; offset += 2) peak = Math.max(peak, Math.abs(wav.getInt16(offset, true)));
+      if (Math.abs(wav.getInt16(44, true)) < peak / 2 || Math.abs(wav.getInt16(wav.byteLength - 2, true)) < peak / 2) { res.statusCode = 400; res.end('{}'); return; }
+      res.end(JSON.stringify({ text: 'The quiet middle span kept both surrounding words.' })); return;
+    }
     const identities = new Set<number>();
     for (let i = 44; i + 1 < wav.byteLength; i += 2) {
       const sample = Math.abs(wav.getInt16(i, true));

@@ -1,4 +1,21 @@
 import { test, expect } from '@playwright/test';
+test('dictation captures audio without browser call-processing effects', async ({ page }) => {
+  await page.addInitScript(() => {
+    const get = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async constraints => {
+      const stream = await get(constraints);
+      (window as typeof window & { captureSettings?: MediaTrackSettings }).captureSettings = stream.getAudioTracks()[0].getSettings();
+      return stream;
+    };
+  });
+  await page.goto('/'); await page.getByRole('button', { name: 'Start recording' }).click();
+  await expect(page.getByRole('button', { name: 'Stop recording' })).toBeVisible();
+  const settings = await page.evaluate(() => (window as typeof window & { captureSettings?: MediaTrackSettings }).captureSettings);
+  expect(settings?.echoCancellation).toBe(false);
+  expect(settings?.noiseSuppression).toBe(false);
+  expect(settings?.autoGainControl).toBe(false);
+  await page.getByRole('button', { name: 'Cancel recording' }).click();
+});
 test('dictation goes from explicit recording to an editable result and copies only the current edit', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Speak naturally. Make it yours.' })).toBeVisible();

@@ -1,7 +1,8 @@
 export interface Recording { stop(): Promise<Blob>; cancel(): void; }
 export async function startRecorder(): Promise<Recording> {
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) throw new Error('This browser cannot record audio. Open SayLor in a current Chrome or Edge browser.');
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  // Preserve the dictation signal; voice-call processing distorted language switches in replay.
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
   let recorder: MediaRecorder;
   try { recorder = new MediaRecorder(stream); } catch (error) { stream.getTracks().forEach(track => track.stop()); throw error; }
   let chunks: Blob[] = [], discarded = false;

@@ -35,6 +35,18 @@ test('quiet valid recording reaches transcription while digital silence is rejec
   expect((await silent.json()).error.code).toBe('no_speech');
 });
 
+for (const volume of [1, 0.1]) test(`quiet speech inside an utterance keeps its context at volume ${volume}`, async ({ request, baseURL }) => {
+  await request.get(`http://127.0.0.1:${process.env.FAKE_GROQ_PORT || '9997'}/scenario?language=soft-span`);
+  try {
+    const loud = recording([4000 * volume], 4), soft = recording([100 * volume], 0.4);
+    const bytes = Buffer.concat([loud, soft.subarray(44), loud.subarray(44)]);
+    bytes.writeUInt32LE(bytes.length - 8, 4); bytes.writeUInt32LE(bytes.length - 44, 40);
+    const response = await request.post('/api/transcribe', { headers: { Origin: baseURL!, 'Content-Type': 'audio/wav' }, data: bytes });
+    expect(response.ok()).toBeTruthy();
+    expect((await response.json()).transcript).toBe('The quiet middle span kept both surrounding words.');
+  } finally { await request.get(`http://127.0.0.1:${process.env.FAKE_GROQ_PORT || '9997'}/scenario`); }
+});
+
 for (const [language, original, result] of [
   ['Mandarin', '嗯，明天三点，不对，四点见。', '明天四点见。'],
   ['Malay', 'Jumpa pukul tiga, maaf pukul empat.', 'Jumpa pukul empat.'],

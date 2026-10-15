@@ -15,12 +15,21 @@ function encodePcm(samples: Int16Array): Uint8Array {
   return bytes;
 }
 
-// Pause segmentation reduces whole-clip language bias. These screening-derived
-// thresholds do not establish accuracy for natural within-sentence code switches.
+// Cut only near silence relative to this recording's speech level. A fixed
+// absolute threshold classified softly spoken words as pauses and cut their context.
 // At most 12 sequential subrequests; never discard samples or force a language.
 export function transcriptionSegments(bytes: Uint8Array): Uint8Array[] {
   const { samples } = readWav(bytes);
   const frame = 320, minimum = 4 * SAMPLE_RATE, quietMinimum = 0.30 * SAMPLE_RATE;
+  const energies: number[] = [];
+  for (let offset = 0; offset < samples.length; offset += frame) {
+    const end = Math.min(offset + frame, samples.length);
+    let energy = 0;
+    for (let index = offset; index < end; index++) energy += (samples[index] / 32768) ** 2;
+    energies.push(Math.sqrt(energy / (end - offset)));
+  }
+  const levels = [...energies].sort((a, b) => a - b);
+  const quietThreshold = Math.min(0.008, levels[Math.floor(levels.length * 0.95)] * 0.02);
   const boundaries = [0];
   let quietStart: number | undefined;
   const considerPause = (quietEnd: number) => {
@@ -29,10 +38,7 @@ export function transcriptionSegments(bytes: Uint8Array): Uint8Array[] {
     if (middle - boundaries[boundaries.length - 1] >= minimum && samples.length - middle >= minimum) boundaries.push(middle);
   };
   for (let offset = 0; offset < samples.length; offset += frame) {
-    const end = Math.min(offset + frame, samples.length);
-    let energy = 0;
-    for (let index = offset; index < end; index++) energy += (samples[index] / 32768) ** 2;
-    if (Math.sqrt(energy / (end - offset)) < 0.008) quietStart ??= offset;
+    if (energies[offset / frame] < quietThreshold) quietStart ??= offset;
     else { considerPause(offset); quietStart = undefined; }
   }
   // A trailing quiet run cannot separate two speech spans.
