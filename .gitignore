@@ -1,0 +1,24 @@
+# Local credentials and settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime/development output
+node_modules/
+dist/
+coverage/
+*.log
+.worktrees/
+playwright-report/
+test-results/
+
+# Local captures and evaluation recordings
+.scratch/**/wispr-rea-evidence.json
+.scratch/**/private/
+.scratch/**/*.wav
+.scratch/**/*.mp3
+.scratch/**/*.m4a
+.scratch/**/*.webm
+.scratch/**/*.ogg
