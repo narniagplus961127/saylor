@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+.scratch
+.worktrees
+.agents
+.codex
+node_modules
+**/node_modules
+**/dist
+tests
+test-results
+playwright-report
+.playwright-cli

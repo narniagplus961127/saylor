@@ -1,11 +1,13 @@
 {
   "name": "saylor",
   "private": true,
+  "type": "module",
+  "engines": { "node": "24.x" },
   "packageManager": "pnpm@12.8.1",
   "scripts": {
     "dev": "concurrently -k -n api,web \"pnpm --filter @saylor/api dev\" \"pnpm --filter @saylor/web dev\"",
-    "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
+    "build": "tsc -p tsconfig.deployment.json && pnpm -r build",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.deployment.json",
     "test": "node scripts/test.mjs",
     "test:multilingual": "playwright test --config playwright.multilingual.config.ts",
     "evaluate": "node scripts/evaluate.mjs",

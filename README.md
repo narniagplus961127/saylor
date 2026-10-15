@@ -1,6 +1,6 @@
 # SayLor
 
-A personal, local web workspace for short dictation. Speak, review the original transcription and lightly cleaned result, edit, then explicitly copy. Audio and text are sent to Groq; the application saves no recording or transcript history.
+A personal web workspace for short dictation, with local development and preparation for private Vercel hosting. Speak, review the original transcription and lightly cleaned result, edit, then explicitly copy. Audio and text are sent to Groq; the application saves no recording or transcript history.
 
 ## Run on Windows
 
@@ -19,7 +19,7 @@ pnpm dev
 
 Open **http://127.0.0.1:5173** in a current Chrome or Edge browser. Allow microphone access when you press Start recording. Stop submits the clip; Cancel discards it without submitting. Recordings stop automatically at 60 seconds. Review both panels, edit the result and press Copy result. Refresh clears session text.
 
-Both servers bind to loopback. The Hono API listens on port 8787 and accepts mutations only from the intended web origin. Optional process environment variables `WEB_PORT` and `API_PORT` change both ports together; always open the matching `127.0.0.1` address. This is a local development application, not a public hosted service.
+In local mode, both servers bind to loopback. The Hono API listens on port 8787 and accepts mutations only from the intended web origin. Optional process environment variables `WEB_PORT` and `API_PORT` change both ports together; always open the matching `127.0.0.1` address. Hosted setup is a separate step: see [private Vercel deployment](docs/deployment.md). The deployment must restrict access to the owner.
 
 ## Verify
 
@@ -28,7 +28,7 @@ pnpm exec playwright install chromium
 pnpm check
 ```
 
-`pnpm test` runs dictation, translation, multilingual and recovery suites sequentially on isolated ports. Browser tests launch the actual frontend and API, a synthetic browser microphone and a local fake Groq server. They use a dummy key and never call the live provider. `FAKE_GROQ_PORT`, `WEB_PORT` and `API_PORT` allow parallel worktrees to use different ports. Tests observe the user workflow rather than component internals. A production build checks the web bundle; daily local startup remains `pnpm dev`.
+`pnpm test` runs dictation, translation, multilingual, recovery and deployment suites sequentially on isolated ports. Browser tests launch the actual frontend and API, a synthetic browser microphone and a local fake Groq server. The deployment suite serves the built frontend through a local simulation using the actual Vercel function entry; it does not attest Vercel routing or authentication. Tests use a dummy key and never call the live provider. `FAKE_GROQ_PORT`, `WEB_PORT` and `API_PORT` allow parallel worktrees to use different ports. Tests observe the user workflow rather than component internals. A production build checks the web bundle and deployment entry; daily local startup remains `pnpm dev`.
 
 `pnpm check` runs the tool checks, type checking, all workflow suites, production build and credential scan. The GitHub Actions workflow runs the same command with dummy credentials. It does not run live speech evaluation. See [local operations](docs/agents/operations.md) and [resumable evaluation](docs/evaluation.md). `pnpm check:secrets --build` scans tracked/unignored working files and the browser build, including the locally configured key when present, without printing matching values. It is a targeted Groq/private-key check, not a general secret-detection service.
 
