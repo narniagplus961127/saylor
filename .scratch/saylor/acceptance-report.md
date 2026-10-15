@@ -1,5 +1,7 @@
 # SayLor MVP acceptance report
 
+This document preserves the initial frozen baseline. For the later relative-threshold/capture investigation, improved development scores, browser timing observations and remaining cross-feature failures, see [accuracy-investigation.md](accuracy-investigation.md) and the [current map](map.md). Release acceptance remains open.
+
 Evaluated 2026-10-15 (Asia/Kuala_Lumpur). **Release acceptance has not passed.** The frozen public recording baseline produced 10/20 provisionally usable final results, nine clear critical errors and one additional substantive omission. Ticket 06 remains claimed. This is agent semantic screening against frozen public annotations, not native-speaker or user acceptance.
 
 ## Scope and method
