@@ -17,7 +17,9 @@ export function groqProvider(key: string | undefined, baseUrl = 'https://api.gro
       // Never return provider bodies: these can echo content or credentials.
       void response.body?.cancel();
       if (response.status === 429) {
-        const value = Number(response.headers.get('retry-after'));
+        const retry = response.headers.get('retry-after');
+        const numeric = Number(retry);
+        const value = retry && !Number.isFinite(numeric) ? (Date.parse(retry) - Date.now()) / 1000 : numeric;
         throw new AppError('quota', 'The free service limit was reached. Wait before trying again. No paid fallback was used.', 429, Number.isFinite(value) && value > 0 ? Math.ceil(value) : undefined);
       }
       if (response.status === 401 || response.status === 403) throw new AppError('configuration', 'The AI service rejected the API key. Check your local configuration.', 503);

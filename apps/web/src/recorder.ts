@@ -8,12 +8,12 @@ export async function startRecorder(): Promise<Recording> {
   const release = () => stream.getTracks().forEach(track => track.stop());
   const ended = new Promise<Blob>((resolve, reject) => {
     recorder.ondataavailable = event => { if (!discarded && event.data.size) chunks.push(event.data); };
-    recorder.onerror = () => { release(); reject(new Error('Recording failed. Please try again.')); };
+    recorder.onerror = () => { discarded = true; chunks = []; release(); reject(new Error('Recording failed. Please try again.')); };
     recorder.onstop = () => { release(); const blob = new Blob(chunks, { type: recorder.mimeType }); chunks = []; resolve(blob); };
   });
   // Attach rejection handling before the user stops to avoid an unhandled recorder error.
   void ended.catch(() => undefined);
-  recorder.start();
+  try { recorder.start(); } catch (error) { discarded = true; chunks = []; release(); throw error; }
   return {
     async stop() { if (recorder.state !== 'inactive') recorder.stop(); release(); return normalize(await ended); },
     cancel() { discarded = true; chunks = []; if (recorder.state !== 'inactive') recorder.stop(); release(); }
@@ -23,6 +23,7 @@ async function normalize(blob: Blob): Promise<Blob> {
   const context = new AudioContext();
   try {
     const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+    if (decoded.duration > 60.25) throw new Error('Recording exceeded 60 seconds. Please record a shorter clip.');
     // MediaRecorder can flush a final codec frame beyond the cap. Limit capture output to 60 seconds.
     const length = Math.min(Math.ceil(decoded.duration * 16000), 960000);
     if (length < 160) throw new Error('The recording was too short. Try speaking for a little longer.');

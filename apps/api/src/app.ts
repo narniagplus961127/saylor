@@ -14,6 +14,11 @@ export function createApp(provider: Provider, webPort = 5173, apiPort = 8787) {
     if (c.req.method !== 'GET' && c.req.header('origin') !== `http://127.0.0.1:${webPort}`) throw new AppError('forbidden', `Open SayLor at http://127.0.0.1:${webPort}.`, 403);
     await next();
   });
+  // Inspect upload bytes before returning a limit error so browser uploads receive the typed response.
+  app.use('/api/*', async (c, next) => {
+    if (c.req.raw.body) { const headers = new Headers(c.req.raw.headers); headers.delete('content-length'); c.req.raw = new Request(c.req.raw, { headers }); }
+    await next();
+  });
   app.get('/api/health', c => c.json({ status: 'ok' }));
   app.use('/api/transcribe', bodyLimit({ maxSize: MAX_AUDIO_BYTES, onError: () => { throw new AppError('invalid_input', 'Recording is too large. The limit is 60 seconds.', 413); } }));
   app.post('/api/transcribe', async c => {
