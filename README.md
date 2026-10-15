@@ -38,7 +38,11 @@ Browser tests launch the actual frontend and API, a synthetic browser microphone
 - `apps/api`: validation and Groq adapters; keys stay in this backend. Two operations keep successful transcription separate from cleanup.
 - `packages/contracts`: stage request/response and failure types.
 - `POST /api/transcribe`: raw `audio/wav`, at most 1,920,044 bytes/60 seconds; returns `{ transcript }`.
-- `POST /api/process`: JSON `{ transcript, output: "original" }`; returns `{ result }`.
+- `POST /api/process`: JSON `{ transcript, output: "original" | "en" | "zh" | "ms" }`; returns `{ result }`. The selected language translates the complete message or conservatively cleans input already in that language.
 - Failures return `{ error: { code, message, retryAfter? } }`. Requests are bounded, no automatic retries or paid fallback are implemented, and provider error bodies are never reflected.
 
-Groq's `whisper-large-v3-turbo` and `openai/gpt-oss-120b` are the preliminary selected models. Free availability is quota-limited. Mixed-language handling, translation, regeneration, recovery and the separate 20-recording quality gate belong to subsequent tickets. The initial complete English flow does not establish final MVP acceptance. Only the repository owner may merge changes.
+Choose Keep original languages, English, Simplified Chinese or Malay before recording. Only this preference is saved in browser storage. Changing the choice afterward makes no request until Generate again; it uses the original transcription and asks before replacing manual edits. A generation failure leaves the existing result available. Copy result always copies the current edit.
+
+Translation/regeneration browser checks use a separate controlled Groq fixture: `pnpm exec playwright test -c playwright.translation.config.ts`. Set `WEB_PORT=5273`, `API_PORT=8887`, and `FAKE_GROQ_PORT=9897` when running alongside another worktree.
+
+Groq's `whisper-large-v3-turbo` and `openai/gpt-oss-120b` are the preliminary selected models. Free availability is quota-limited. Complete mixed-language handling, recovery and the separate 20-recording quality gate belong to subsequent tickets. Automated fixtures establish workflow behavior, not live translation quality. Only the repository owner may merge changes.

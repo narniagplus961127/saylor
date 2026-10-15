@@ -26,8 +26,8 @@ export function createApp(provider: Provider, webPort = 5173, apiPort = 8787) {
     if (!c.req.header('content-type')?.startsWith('application/json')) throw new AppError('invalid_input', 'Expected a transcription.');
     let body: Partial<ProcessRequest>;
     try { body = await c.req.json(); } catch { throw new AppError('invalid_input', 'The transcription could not be read.'); }
-    if (!body || typeof body.transcript !== 'string' || !body.transcript.trim() || body.transcript.length > 12000 || body.output !== 'original') throw new AppError('invalid_input', 'Provide a transcription and supported output choice.');
-    return c.json({ result: await provider.process(body.transcript, body.output) });
+    if (!body || typeof body.transcript !== 'string' || !body.transcript.trim() || body.transcript.length > 12000 || !['original', 'en', 'zh', 'ms'].includes(body.output ?? '')) throw new AppError('invalid_input', 'Provide a transcription and supported output choice.');
+    return c.json({ result: await provider.process(body.transcript, body.output as ProcessRequest['output']) });
   });
   app.onError((error, c) => {
     const safe = error instanceof AppError ? error : new AppError('unavailable', 'The request could not be completed.', 500);
