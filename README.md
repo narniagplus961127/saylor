@@ -30,7 +30,7 @@ pnpm typecheck
 pnpm build
 ```
 
-Browser tests launch the actual frontend and API, a synthetic browser microphone and a local fake Groq server. They use a dummy key and never call the live provider. `FAKE_GROQ_PORT`, `WEB_PORT` and `API_PORT` allow parallel worktrees to use different ports. Tests observe the user workflow rather than component internals. A production build checks the web bundle; daily local startup remains `pnpm dev`.
+`pnpm test` runs dictation, translation, multilingual and recovery suites sequentially on isolated ports. Browser tests launch the actual frontend and API, a synthetic browser microphone and a local fake Groq server. They use a dummy key and never call the live provider. `FAKE_GROQ_PORT`, `WEB_PORT` and `API_PORT` allow parallel worktrees to use different ports. Tests observe the user workflow rather than component internals. A production build checks the web bundle; daily local startup remains `pnpm dev`.
 
 ## Boundaries
 
@@ -45,4 +45,6 @@ Choose Keep original languages, English, Simplified Chinese or Malay before reco
 
 Translation/regeneration browser checks use a separate controlled Groq fixture: `pnpm exec playwright test -c playwright.translation.config.ts`. Set `WEB_PORT=5273`, `API_PORT=8887`, and `FAKE_GROQ_PORT=9897` when running alongside another worktree.
 
-Groq's `whisper-large-v3-turbo` and `openai/gpt-oss-120b` are the preliminary selected models. Free availability is quota-limited. Complete mixed-language handling, recovery and the separate 20-recording quality gate belong to subsequent tickets. Automated fixtures establish workflow behavior, not live translation quality. Only the repository owner may merge changes.
+Groq's `whisper-large-v3-turbo` and `openai/gpt-oss-120b` are the preliminary selected models. Free availability is quota-limited. Multilingual segmentation and manual stage recovery are implemented. The live quality gate currently fails: 10/20 frozen public samples were provisionally usable, with nine clear critical errors. See [.scratch/saylor/acceptance-report.md](.scratch/saylor/acceptance-report.md) for evidence and remaining validation. Automated fixtures establish workflow behavior, not live translation quality. Only the repository owner may merge changes.
+
+On a temporary transcription failure, Retry transcription reuses audio held only in page memory. Once transcription succeeds, audio is released and Retry text processing reuses the original text. Discard or Cancel processing releases a failed attempt; useful existing text stays available. Provider quota guidance disables new requests until the indicated wait expires. No automatic retries occur.

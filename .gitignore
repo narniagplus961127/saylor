@@ -22,3 +22,6 @@ test-results/
 .scratch/**/*.m4a
 .scratch/**/*.webm
 .scratch/**/*.ogg
+
+# Local browser inspection artifacts
+.playwright-cli/
