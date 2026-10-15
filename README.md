@@ -43,6 +43,8 @@ pnpm check
 
 Choose Keep original languages, English, Simplified Chinese or Malay before recording. Only this preference is saved in browser storage. Changing the choice afterward makes no request until Generate again; it uses the original transcription and asks before replacing manual edits. A generation failure leaves the existing result available. Copy result always copies the current edit.
 
+Chinese output from text containing Latin letters uses an English semantic draft followed by a translation-only Chinese pass. Original Chinese name characters are supplied to the final pass. This makes at most two text-model calls within one shared 20-second deadline and uses more of the free quota. Chinese input without Latin letters and the other output choices use one text-model call. Either pass failing leaves the previous result available for explicit retry.
+
 Translation/regeneration browser checks use a separate controlled Groq fixture: `pnpm exec playwright test -c playwright.translation.config.ts`. Set `WEB_PORT=5273`, `API_PORT=8887`, and `FAKE_GROQ_PORT=9897` when running alongside another worktree.
 
 Groq's `whisper-large-v3-turbo` and `openai/gpt-oss-120b` are the preliminary selected models. Free availability is quota-limited. Multilingual segmentation and manual stage recovery are implemented. The live quality gate remains open; see the [current implementation map](.scratch/saylor/map.md) and [accuracy investigation](.scratch/saylor/accuracy-investigation.md) for results and remaining failures. Automated fixtures establish workflow behavior, not live translation quality. Only the repository owner may merge changes.
