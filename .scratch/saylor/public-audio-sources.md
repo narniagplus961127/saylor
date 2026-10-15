@@ -32,6 +32,20 @@ Metadata API: https://datasets-server.huggingface.co/rows?dataset=google%2Ffleur
 Expected source text: When you call someone who is thousands of miles away, you are using a satellite.
 Expected meaning: The script claims calling someone thousands of miles away uses a satellite. Preserve its claim rather than correcting or expanding it.
 
+## Prepared three-language recording
+
+File: fleurs-sequential-en-zh-ms.wav, 22.34 seconds, SHA-256 F50ACF3471D6776917B0FE78334F523539DCDD4353ECBED93F8A7F203D97895B.
+
+Modification: converted the three source files from 32-bit float to mono 16-bit PCM at 16 kHz, then joined English → Mandarin → Malay with a 0.25-second silent gap between clips. Attribution remains Google / FLEURS and its speech contributors, CC BY 4.0. This is an artificial sequence of three public speakers, not a naturally trilingual utterance.
+
+Expected meaning, in order:
+
+1. The speaker claims that calling someone thousands of miles away uses a satellite.
+2. The speaker claims the Amazon is the widest river on Earth and that some sections reach six miles wide.
+3. The speaker says they do not know whether the listener is aware that most goods from Central America enter the country duty-free.
+
+Reference text is the three source transcripts above joined in that order. Dictation should preserve the English, Chinese, and Malay segments; translation should preserve all three meanings in the selected target language. Fidelity does not mean endorsing the source scripts' factual assertions.
+
 ## Evaluation caveats
 
 These provide only short public read-speech screening inputs. A three-clip concatenation would be an artificial sequential language-switch test involving different speakers and unrelated sentences, not natural English/Mandarin/Malay code switching by one speaker. Label any concatenation accordingly, retain attribution, and record conversion/concatenation as a modification. It cannot replace the real 20-recording acceptance set or validate the user's accent/self-corrections.
