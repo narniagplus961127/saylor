@@ -1,0 +1,8 @@
+{
+  "name": "saylor", "private": true, "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"pnpm --filter @saylor/api dev\" \"pnpm --filter @saylor/web dev\"",
+    "build": "pnpm -r build", "typecheck": "pnpm -r typecheck", "test": "playwright test"
+  },
+  "devDependencies": { "@playwright/test": "1.64.1", "concurrently": "10.0.6", "typescript": "7.0.2", "tsx": "4.23.15", "@types/node": "^24.0.0" }
+}

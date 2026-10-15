@@ -1,0 +1,1 @@
+{"name":"@saylor/web","private":true,"type":"module","scripts":{"dev":"vite","build":"tsc --noEmit && vite build","typecheck":"tsc --noEmit"},"dependencies":{"react":"19.3.1","react-dom":"19.3.1","@saylor/contracts":"workspace:*"},"devDependencies":{"vite":"8.3.4","@vitejs/plugin-react":"6.1.2","@types/react":"^19.0.0","@types/react-dom":"^19.0.0"}}
