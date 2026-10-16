@@ -1,5 +1,9 @@
 import { createApp } from './app.js';
 import { groqProvider } from './groq.js';
+import { createRecordingLimit } from './recording-limit.js';
+
+// Keep counters across requests even though the hosted app is constructed for each request.
+const reserveRecording = createRecordingLimit();
 
 // These values come from deployment configuration, never request/forwarded headers.
 export function createHostedApp(env: NodeJS.ProcessEnv) {
@@ -13,5 +17,5 @@ export function createHostedApp(env: NodeJS.ProcessEnv) {
     return url.origin;
   });
   const baseUrl = env.NODE_ENV === 'test' && env.VERCEL !== '1' ? env.GROQ_BASE_URL : undefined;
-  return createApp(groqProvider(env.GROQ_API_KEY, baseUrl), undefined, undefined, [...new Set(origins)]);
+  return createApp(groqProvider(env.GROQ_API_KEY, baseUrl), undefined, undefined, [...new Set(origins)], env.VERCEL === '1' ? reserveRecording : undefined);
 }

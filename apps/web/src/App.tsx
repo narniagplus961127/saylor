@@ -20,6 +20,7 @@ export function App() {
   }
   const [failedStage, setFailedStage] = useState<'transcription' | 'text' | null>(null);
   const [retryAt, setRetryAt] = useState(0), [now, setNow] = useState(Date.now());
+  const [recordingRetryAt, setRecordingRetryAt] = useState(0);
   const pendingAudio = useRef<Blob | null>(null), pendingText = useRef(''), editVersion = useRef(0);
   const recording = useRef<Recording | null>(null), busy = useRef(false), attempt = useRef(0), request = useRef<AbortController | null>(null);
   const busyStage = stage === 'permission' || stage === 'transcribing' || stage === 'cleaning' || stage === 'translating';
@@ -28,7 +29,7 @@ export function App() {
     window.addEventListener('pagehide', dispose);
     return () => { dispose(); window.removeEventListener('pagehide', dispose); };
   }, []);
-  useEffect(() => { if (!retryAt) return; const timer = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(timer); }, [retryAt]);
+  useEffect(() => { if (!retryAt && !recordingRetryAt) return; const timer = window.setInterval(() => setNow(Date.now()), 250); return () => clearInterval(timer); }, [retryAt, recordingRetryAt]);
   useEffect(() => {
     if (stage !== 'recording') return;
     const start = performance.now();
@@ -39,7 +40,7 @@ export function App() {
     return () => clearInterval(timer);
   }, [stage]);
   async function start() {
-    if (busy.current || Date.now() < retryAt) return; busy.current = true;
+    if (busy.current || Date.now() < retryAt || Date.now() < recordingRetryAt) return; busy.current = true;
     pendingAudio.current = null; pendingText.current = ''; setFailedStage(null); setRetryAt(0);
     const id = ++attempt.current; setError(''); setNotice(''); setSeconds(0); setStage('permission');
     try {
@@ -64,7 +65,9 @@ export function App() {
     const detail = cause instanceof ApiError ? cause.detail : undefined;
     const retryable = !detail || !['invalid_input', 'no_speech', 'forbidden', 'configuration'].includes(detail.code);
     if (!retryable) pendingAudio.current = null;
-    setFailedStage(retryable ? failed : null); setRetryAt(detail?.retryAfter ? Date.now() + detail.retryAfter * 1000 : 0); setNow(Date.now()); setStage('error');
+    const deadline = detail?.retryAfter ? Date.now() + detail.retryAfter * 1000 : 0;
+    if (detail?.code === 'recording_limit') setRecordingRetryAt(deadline);
+    setFailedStage(retryable ? failed : null); setRetryAt(detail?.code === 'recording_limit' ? 0 : deadline); setNow(Date.now()); setStage('error');
   }
   async function run(from: 'transcription' | 'text', id: number) {
     const controller = new AbortController(); request.current = controller;
@@ -93,7 +96,7 @@ export function App() {
     busy.current = true; void run('text', ++attempt.current);
     return true;
   }
-  function retry() { if (busy.current || !failedStage || Date.now() < retryAt) return; if (failedStage === 'text' && result !== generatedResult && !window.confirm('Retry text processing will replace your manual edits. Continue?')) return; busy.current = true; void run(failedStage, ++attempt.current); }
+  function retry() { if (busy.current || !failedStage || Date.now() < retryAt || (failedStage === 'transcription' && Date.now() < recordingRetryAt)) return; if (failedStage === 'text' && result !== generatedResult && !window.confirm('Retry text processing will replace your manual edits. Continue?')) return; busy.current = true; void run(failedStage, ++attempt.current); }
   function cancel() { attempt.current++; request.current?.abort(); request.current = null; pendingAudio.current = null; pendingText.current = ''; recording.current?.cancel(); recording.current = null; busy.current = false; setFailedStage(null); setError(''); setStage(transcript || result ? 'ready' : 'idle'); setSeconds(0); setNotice('Recording discarded.'); }
   async function copy() { try { await navigator.clipboard.writeText(result); setNotice('Copied to clipboard.'); } catch { setNotice('Copy failed. Select the result and copy it manually.'); } }
   return <main>
@@ -102,10 +105,11 @@ export function App() {
     <section className="recorder" aria-label="Voice recording">
       <div className={`record-symbol ${stage === 'recording' ? 'active' : ''}`} aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="12" y="4" width="8" height="16" rx="4"/><path d="M8 15v2a8 8 0 0 0 16 0v-2M16 25v4M11 29h10"/></svg></div>
       <div className="record-status"><p role="status" aria-live="polite">{labels[stage]}</p><span>{stage === 'recording' ? `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')} / 01:00` : busyStage ? 'One moment, your words are on their way.' : 'Up to 60 seconds · Your microphone, your control'}</span></div>
-      <div className="record-controls">{stage === 'recording' ? <><button className="secondary" onClick={cancel}>Cancel recording</button><button className="primary stop" onClick={() => void stop()}>Stop recording</button></> : <button className="primary" disabled={busyStage || now < retryAt} onClick={() => void start()}>{busyStage ? 'Processing…' : 'Start recording'}<span aria-hidden="true"> ↗</span></button>}</div>
+      <div className="record-controls">{stage === 'recording' ? <><button className="secondary" onClick={cancel}>Cancel recording</button><button className="primary stop" onClick={() => void stop()}>Stop recording</button></> : <button className="primary" disabled={busyStage || now < retryAt || now < recordingRetryAt} onClick={() => void start()}>{busyStage ? 'Processing…' : 'Start recording'}<span aria-hidden="true"> ↗</span></button>}</div>
     </section>
     {busyStage && <button className="secondary" onClick={cancel}>Cancel processing</button>}
-    {error && <div className="error"><p role="alert">{error}</p>{failedStage && <button onClick={retry} disabled={busyStage || now < retryAt}>Retry {failedStage === 'text' ? 'text processing' : 'transcription'}</button>}{now < retryAt && <p>Retry available in {Math.ceil((retryAt - now) / 1000)} seconds.</p>}<button onClick={cancel}>Discard failed attempt</button></div>}
+    {now < recordingRetryAt && <p role="status">New recordings available in {Math.ceil((recordingRetryAt - now) / 60_000)} minutes.</p>}
+    {error && <div className="error"><p role="alert">{error}</p>{failedStage && <button onClick={retry} disabled={busyStage || now < retryAt || (failedStage === 'transcription' && now < recordingRetryAt)}>Retry {failedStage === 'text' ? 'text processing' : 'transcription'}</button>}{now < retryAt && <p>Retry available in {Math.ceil((retryAt - now) / 1000)} seconds.</p>}<button onClick={cancel}>Discard failed attempt</button></div>}
     <div className="output-controls"><div><label htmlFor="output-language">Output language</label><select id="output-language" value={output} disabled={busyStage || stage === 'recording' || now < retryAt} onChange={event => chooseOutput(event.target.value as OutputChoice)}><option value="original">Keep original languages</option><option value="en">English</option><option value="zh">Simplified Chinese</option><option value="ms">Malay</option></select></div><p>Choose a language to translate your words.</p><button className="secondary" disabled={!transcript || busyStage || stage === 'recording' || now < retryAt} onClick={() => void regenerate()}>Generate again</button></div>
     <div className="workspace">
       <section className="text-panel original"><div className="panel-header"><label htmlFor="original">Original transcription</label><span>AS YOU SAID IT</span></div><textarea id="original" aria-label="Original transcription" readOnly value={transcript} placeholder="Your spoken words will appear here…" /><p className="panel-note">A reference to help you review.</p></section>

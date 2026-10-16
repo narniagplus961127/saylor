@@ -5,7 +5,7 @@ import { AppError } from './errors.js';
 import type { Provider } from './groq.js';
 import { MAX_AUDIO_BYTES, readWav } from './wav.js';
 
-export function createApp(provider: Provider, webPort = 5173, apiPort = 8787, hostedOrigins?: readonly string[]) {
+export function createApp(provider: Provider, webPort = 5173, apiPort = 8787, hostedOrigins?: readonly string[], reserveRecording?: () => void) {
   const app = new Hono();
   const origins = hostedOrigins ?? [`http://127.0.0.1:${webPort}`];
   const hosts = hostedOrigins ? hostedOrigins.map(origin => new URL(origin).host) : [`127.0.0.1:${apiPort}`, `127.0.0.1:${webPort}`];
@@ -28,6 +28,7 @@ export function createApp(provider: Provider, webPort = 5173, apiPort = 8787, ho
   app.post('/api/transcribe', async c => {
     if (c.req.header('content-type')?.split(';')[0] !== 'audio/wav') throw new AppError('invalid_input', 'The recording must be WAV audio.');
     const audio = readWav(new Uint8Array(await c.req.arrayBuffer()));
+    reserveRecording?.();
     return c.json({ transcript: await provider.transcribe(audio.bytes) });
   });
   app.use('/api/process', bodyLimit({ maxSize: 100_000, onError: () => { throw new AppError('invalid_input', 'The transcription is too long.', 413); } }));
