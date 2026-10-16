@@ -1,6 +1,6 @@
-# Private Vercel web deployment
+# Vercel web deployment
 
-Status: code preparation and local simulation only. No Vercel project or deployment has been created or configured by this change. The existing speech-quality gate remains open independently of hosting readiness.
+Status as of 2026-10-16: Production is live at https://qw-saylor.vercel.app/ from merged commit `3b8b3b8`. Anonymous site/favicon/health, Chinese-to-English processing and a public-reference transcription→processing check passed. The owner reports the Preview workflow works well. The owner-confirmed old Preview was deleted; its generated URL and branch alias return 404, and Production remains healthy. Login is disabled by the owner's decision; no visitor limits or database were implemented, and the owner will monitor usage. The existing speech-quality gate remains open independently of hosting readiness. Release evidence is in `.scratch/saylor/issues/09-release-production.md`.
 
 ## Architecture
 
@@ -24,13 +24,21 @@ Vercel's server system variables `VERCEL_URL` and `VERCEL_PROJECT_PRODUCTION_URL
 
 HTTP loopback origins are accepted only for local function simulation when `VERCEL` is not `1`. Hosted requests require HTTPS origins. Forwarded/request headers cannot add trusted origins. `GROQ_BASE_URL` is ignored on Vercel, even if accidentally configured; it is a controlled-test option only outside the platform. Do not set it for deployments.
 
-## Private access is a platform requirement
+## Public access without login
 
-In Vercel Deployment Protection, enable **Vercel Authentication → All Deployments**. This must cover production domains and aliases as well as previews, website assets and `/api/*`. Standard Protection leaves production domains public and does not meet this project's requirement. Keep access limited to the owner; do not create public share links, protection exceptions or reusable bypass credentials for normal app use.
+The owner's 2026-10-16 decision supersedes the earlier requirement for Vercel Authentication on All Deployments. The hosted website and API may be used without login. The owner reports disabling Require Log In directly in Vercel. No application account system is required. Verify this setting on the intended deployment and aliases; project settings are separate from `vercel.json`.
 
-Vercel Authentication and All Deployments are available on the free plans; password protection is a different, paid feature. These settings are not enabled by `vercel.json` or the application. Host/origin checks are request validation, not authentication: an unauthenticated script can forge Origin. **Do not approve hosted live use until platform authentication is verified.** The unauthenticated health URL must also be protected by the platform.
+The Groq key remains server-only, but anonymous visitors and scripts can invoke the API using the owner's shared Free quota. Host/origin checks are request validation, not authentication: scripts can forge Origin. The owner explicitly accepts quota exhaustion and possible service unavailability from other callers. Keep existing input/audio limits, deadlines, safe failures, and zero automatic paid fallback.
 
-The private trial should use non-sensitive speech first. Hosting adds Vercel to the content-processing path. The app emits no audio/text request-body logs or saved history, but Vercel's platform access/error metadata and its retention are separate from Groq's user-confirmed ZDR settings. Review those controls before confidential speech.
+## Best-effort recording allowance
+
+The new implementation allows **20 submitted recordings total across all visitors per hour per Vercel function instance**, with all 20 allowed back-to-back. The first valid WAV submission starts the hour; the first valid submission at or after expiry starts a fresh window. The 21st is rejected before Groq with a typed `recording_limit` 429 and `Retry-After` seconds. Invalid uploads and rejected origins do not consume slots. A valid submission consumes one slot even if Groq fails; an explicit transcription retry is another submission. Internal audio segmentation never consumes additional recording slots.
+
+The module retains only two numbers, without IP tracking, new environment variables, database or additional account. It runs only when `VERCEL=1`; local development/simulation remains unlimited. Counters persist across hosted app creation in the same process, but restart/cold start clears them and separate function instances have separate counters. This is the owner's explicitly accepted best-effort behavior, not an exact global or abuse-proof cap. `/api/process` has no new limit, so translation and cleanup can still consume provider quota independently.
+
+The browser preserves original/result text and edits, offers a recording retry countdown, and leaves translation/copy available when recordings are limited. The existing production deployment remains unchanged until these code changes are published and merged by the owner; a successful Vercel build is needed to activate the allowance. Test blocked/reset behavior using controlled providers, not 21 live requests against the shared free account.
+
+The hosted trial should use non-sensitive speech first. Hosting adds Vercel to the content-processing path. The app emits no audio/text request-body logs or saved history, but Vercel's platform access/error metadata and its retention are separate from Groq's user-confirmed ZDR settings. Review those controls before confidential speech. Public access does not add shared transcript history or publish another visitor's in-memory results.
 
 ## Verify before release
 
@@ -39,12 +47,12 @@ The private trial should use non-sensitive speech first. Hosting adds Vercel to 
 On a separately authorized preview deployment:
 
 1. Verify the account is Hobby, intended commit/build settings, Node/pnpm versions, successful function compilation and one project's frontend/API routes.
-2. In a signed-out/incognito context without bypass headers/cookies, confirm `/`, `/favicon.svg`, `/api/health` and POST `/api/process` require authentication and cannot consume the provider quota. Repeat for each production URL/alias before any promotion; remove an unexpected public alias rather than treating preview protection as sufficient.
-3. Sign in as the owner. With local SayLor servers stopped, record a non-sensitive clip and check original/result separation, immediate language translation, editing, copy, failure recovery and refresh clearing text. Check desktop Chromium and the actual phone browser; native Android APK support is separate work.
+2. In a signed-out/incognito context without bypass headers/cookies, confirm `/`, `/favicon.svg` and `/api/health` are accessible without login on the intended deployment. Verify a valid, non-sensitive API operation works anonymously while invalid input and disallowed origins are still rejected. Check aliases before recommending them for use; do not exhaust live quota or perform load tests. The earlier signed-out-denial results describe the superseded private configuration.
+3. With local SayLor servers stopped, record a non-sensitive clip and check original/result separation, immediate language translation, editing, copy, failure recovery and refresh clearing text. Check desktop Chromium and the actual phone browser; native Android APK support is separate work.
 4. Confirm provider credentials are absent from browser assets/responses and routine platform logs contain no recording/transcript bodies. Avoid secret-bearing HAR files, traces and screenshots.
 5. Measure hosted Stop-to-visible-result latency separately; local timings are not hosted latency evidence. Keep the historical failed quality evaluation and ticket 06 open until its criteria pass.
 
-Production deployment/promotion and merges remain owner-controlled, separate actions. The future Android/desktop clients can reuse the API operations, but need a suitable native-client authentication design; do not embed a Vercel protection-bypass secret or the Groq key in an APK/installer.
+Future production releases and merges remain owner-controlled. The authorized release in ticket 09 uses merged main with Production-only Groq Secret and Corepack configuration; it supersedes the initial unconfigured Production build. Use https://qw-saylor.vercel.app/ for normal use. Future Android/desktop clients can reuse API operations, but their networking/origin behavior needs separate design and verification; do not embed a protection-bypass secret or Groq key in an APK/installer. The current no-login policy does not establish native-client compatibility.
 
 ## Official references checked 2026-10-15
 

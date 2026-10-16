@@ -1,5 +1,28 @@
 import { test, expect } from '@playwright/test';
 
+test('recording limit preserves reviewed text and allows translation during the recording cooldown', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start recording' }).click(); await page.waitForTimeout(1000);
+  await page.getByRole('button', { name: 'Stop recording' }).click();
+  await expect(page.getByLabel('Your result')).toHaveValue('Send the report Friday at three.');
+  await page.getByLabel('Your result').fill('My reviewed wording.');
+  await page.route('**/api/transcribe', route => route.fulfill({ status: 429, contentType: 'application/json', headers: { 'Retry-After': '3600' }, body: JSON.stringify({ error: { code: 'recording_limit', message: 'The shared 20-recording hourly allowance has been used. Your existing text is still available.', retryAfter: 3600 } }) }));
+  await page.getByRole('button', { name: 'Start recording' }).click(); await page.waitForTimeout(1000);
+  await page.getByRole('button', { name: 'Stop recording' }).click();
+  await expect(page.getByRole('alert')).toContainText('20-recording');
+  await expect(page.getByLabel('Your result')).toHaveValue('My reviewed wording.');
+  await expect(page.getByLabel('Original transcription')).toHaveValue('Um, send the report Thursday, sorry, Friday at three.');
+  await expect(page.getByRole('button', { name: 'Retry transcription' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Start recording' })).toBeDisabled();
+  await expect(page.getByText('New recordings available in 60 minutes.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy result' })).toBeEnabled();
+  await expect(page.getByLabel('Output language')).toBeEnabled();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByLabel('Output language').selectOption('ms');
+  await expect(page.getByLabel('Your result')).toHaveValue('Hantar laporan pada hari Jumaat pukul tiga.');
+  await expect(page.getByRole('button', { name: 'Start recording' })).toBeDisabled();
+});
+
 test('built web app records, translates and recovers through the hosted function entry without a local API server', async ({ page, request }) => {
   await page.goto('/');
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/favicon.svg');
