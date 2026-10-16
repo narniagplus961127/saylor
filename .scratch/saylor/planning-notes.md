@@ -7,7 +7,7 @@ Status: Planning; interview in progress. App implementation is not authorized.
 - Official name: SayLor. The pasted SayYor plan is an input draft; its technology choices remain provisional.
 - Personal use first; defer a public, no-login portfolio demo.
 - Hard $0 cost limit, no automatic paid fallback. Accept stopping when a free quota is exhausted.
-- Web first, desktop later, mobile later.
+- Current scope (owner revision, 2026-10-16): web and Windows desktop. Native mobile apps and PWAs have been removed from the roadmap.
 - Default workflow: same-language dictation. Translation runs when an output language is selected.
 - Initial language priorities: English, Mandarin, Malay, and mixed-language speech.
 - Light cleanup removes fillers and false starts, fixes punctuation and obvious grammar, and preserves meaning, tone, names, and numbers; no added information or creative rewriting.
@@ -26,7 +26,7 @@ Status: Planning; interview in progress. App implementation is not authorized.
 - Treat spoken text as content, never as instructions to override processing rules. Resolve natural self-corrections according to the cleanup rules.
 - Output choices: Keep original languages, English, Simplified Chinese, Malay. Remember the last selection. A same-language selection performs cleanup; other-language selections translate. Mixed input must preserve all meaning when rendered in one selected language.
 - Provider acceptance requires representative recordings for individual languages, mixed speech, names, numbers, and self-corrections. Changed meaning and invented content fail acceptance.
-- Keep the TypeScript/pnpm workspace, initially containing only the web app, API, and shared processing contracts. Add desktop/mobile projects in their own phases.
+- Keep the TypeScript/pnpm workspace, initially containing only the web app, API, and shared processing contracts. The Windows desktop project is now implemented in its own phase; no native mobile project is planned.
 - Use React/Vite for the frontend and Hono on Node.js for the backend, both local, with one startup command. Provider credentials belong to the backend.
 - Changing output language after processing requires an explicit Generate again action from the original transcription. Warn before replacing a manually edited result.
 - Initial quality gate: 20 representative recordings, at least 18 usable without substantive correction, and zero incorrect names, numbers, dates, intended meaning, or invented information across the set. Cosmetic punctuation fixes can be minor; semantic corrections are substantive. A single critical error fails this gate even if the 18/20 usability threshold passes.
@@ -69,7 +69,7 @@ Free cloud inference is quota-limited and terms can change. If there is no accep
 4. Add selected-language translation, explicit regeneration, edit protection, and simple dictated paragraph/list formatting.
 5. Complete timer, Cancel/discard, microphone/no-speech errors, stage progress, quota handling, partial success, manual retry, and memory cleanup.
 6. Verify the full 20-recording gate, language preservation, key isolation, no saved history, cancellation/retry behavior, and one-command startup. Measure end-to-end latency on typical 20-second clips; report observed timing against the five-second target.
-7. Review results before considering a hosted demo, desktop integration, or mobile development.
+7. Hosted web and Windows desktop have since been implemented; the owner has accepted the desktop workflow and deferred formal speech-quality acceptance for personal practice.
 
 ## MVP feature scope
 
@@ -89,7 +89,7 @@ Free cloud inference is quota-limited and terms can change. If there is no accep
 
 - Hosted access and a public portfolio demo.
 - Windows desktop app, global shortcuts, floating recorder, and text insertion into other apps.
-- Mobile app and system-wide dictation.
+- Native mobile apps and PWAs are excluded from the roadmap. Windows shortcut dictation is covered by the implemented desktop specification.
 - Continuous/live streaming, offline models, saved history, accounts/synchronization, meeting notes, and summaries.
 - Automatic per-app tone, snippet expansion, and vocabulary learning.
 

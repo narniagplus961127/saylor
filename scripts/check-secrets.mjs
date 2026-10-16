@@ -5,23 +5,22 @@ import { resolve } from 'node:path';
 // Reports paths only. Never echo a matching line or credential value.
 async function main() {
   const args = process.argv.slice(2);
-  if (args.some(arg => arg !== '--build')) throw Error('Use pnpm check:secrets [--build].');
+  if (args.some(arg => !['--build', '--desktop'].includes(arg))) throw Error('Use pnpm check:secrets [--build] [--desktop].');
   const root = process.cwd();
   const files = new Set(execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean));
   let localEnv = '';
   try { localEnv = await readFile(resolve(root, '.env'), 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const envKey = localEnv.match(/^\s*(?:export\s+)?GROQ_API_KEY\s*=\s*(?:"([^"\r\n]+)"|'([^'\r\n]+)'|([^#\s\r\n]+))/m);
   const known = [process.env.GROQ_API_KEY, envKey && (envKey[1] ?? envKey[2] ?? envKey[3])].filter(value => value && !['test-only-key', 'your-free-plan-api-key'].includes(value));
-  if (args.includes('--build')) {
-    async function collect(path) {
-      for (const entry of await readdir(resolve(root, path), { withFileTypes: true })) {
-        const name = `${path}/${entry.name}`;
-        if (entry.isSymbolicLink()) throw Error('Unexpected link in browser build.');
-        if (entry.isDirectory()) await collect(name); else files.add(name);
-      }
+  async function collect(path) {
+    for (const entry of await readdir(resolve(root, path), { withFileTypes: true })) {
+      const name = `${path}/${entry.name}`;
+      if (entry.isSymbolicLink()) throw Error('Unexpected link in build.');
+      if (entry.isDirectory()) await collect(name); else files.add(name);
     }
-    await collect('apps/web/dist');
   }
+  if (args.includes('--build')) await collect('apps/web/dist');
+  if (args.includes('--desktop')) await collect('apps/desktop/dist/releases');
   const findings = [];
   for (const name of files) {
     const bytes = await readFile(resolve(root, name));

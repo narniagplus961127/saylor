@@ -14,6 +14,7 @@ coverage/
 .vercel/
 playwright-report/
 test-results/
+apps/desktop/native/bin/
 
 # Local captures and evaluation recordings
 .scratch/**/wispr-rea-evidence.json

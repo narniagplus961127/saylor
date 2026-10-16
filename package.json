@@ -14,7 +14,12 @@
     "evaluate:counting": "node --test scripts/live/counting.test.mjs",
     "test:tools": "node --test scripts/tests/*.test.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "desktop:dev": "pnpm --filter @saylor/web build && pnpm --filter @saylor/desktop native:build && pnpm --filter @saylor/desktop dev",
+    "desktop:build": "pnpm --filter @saylor/web build && pnpm --filter @saylor/desktop package:win",
+    "test:desktop": "pnpm --filter @saylor/desktop test",
+    "test:desktop:package": "pnpm exec tsx apps/desktop/tests/package.mts",
+    "test:desktop:smoke": "pnpm --filter @saylor/web build && pnpm --filter @saylor/desktop native:build && pnpm exec tsx apps/desktop/tests/smoke.mts"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
