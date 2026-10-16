@@ -1,54 +1,93 @@
 # SayLor
 
-A personal web workspace for short dictation, with local development and preparation for private Vercel hosting. Speak, review the original transcription and lightly cleaned result, edit, then explicitly copy. Audio and text are sent to Groq; the application saves no recording or transcript history.
+**Speak naturally. Turn your voice into clear writing.**
 
-## Run on Windows
+SayLor is a personal learning project for short dictation and translation, available as a web app and a portable Windows desktop app. It focuses on English, Mandarin, Malay and mixed-language speech.
 
-Install Node.js 24 and pnpm 12.8.1 (both free). From the repository root:
+[Try the web app](https://qw-saylor.vercel.app/) · [Windows desktop guide](docs/desktop.md) · [Hosting guide](docs/deployment.md)
+
+## What it does
+
+- Record up to 60 seconds, with a timer and Cancel control.
+- Review the original transcription beside a lightly cleaned, editable result.
+- Keep the original languages or translate into English, Simplified Chinese or Malay.
+- Change the output language after recording to translate immediately, without recording again.
+- Copy your edited result and retry a failed stage without repeating successful work.
+- On Windows, dictate from another app using **Ctrl+Alt+Space** and automatically paste the result there.
+
+For example, speak Chinese and choose **English** to get an English result. Cleanup aims to remove fillers and false starts while preserving your meaning. Review names, numbers and important wording before using the result.
+
+## Use the web app
+
+Open [qw-saylor.vercel.app](https://qw-saylor.vercel.app/), allow microphone access when prompted, and select **Start recording**. Stop when finished, choose an output language, then review, edit and copy your result. Selecting another language translates the original transcription immediately; SayLor asks before replacing manual edits.
+
+The hosted app is public and requires no login. It shares a limited free AI quota across visitors, so it may become temporarily unavailable. The recording allowance is 20 submissions per hour per running server instance, with bursts allowed. Restarts reset counters and separate instances have separate allowances; this is a best-effort limit. Translation has separate provider quota constraints.
+
+## Use the Windows app
+
+The Windows x64 app runs in the system tray. A portable build can be created from this repository using the instructions below; a GitHub release download is not published yet.
+
+1. Open SayLor and choose your output language.
+2. Return to the destination app and place your cursor in its text field.
+3. Press **Ctrl+Alt+Space** to record, then press it again to stop.
+4. After processing, SayLor pastes into the original app. It does not press Enter or send a message.
+
+**Escape** cancels shortcut dictation. Closing the window cancels pending work and hides it to the tray; use the tray menu to quit or disable automatic paste. If focus changes or Windows blocks insertion, review and copy the retained result manually. Recording with the window button uses manual copy.
+
+The app requires internet access and uses the hosted API. Its portable build is unsigned, has no automatic updater and needs no local API key. See the [desktop guide](docs/desktop.md) for details. Current product scope is **web and Windows desktop**; native mobile apps and PWAs are not planned.
+
+## Privacy and project status
+
+Audio and text are sent through the backend to Groq for processing. Hosted and desktop use also pass through Vercel. SayLor saves no recording or transcript history; useful text stays in the current session, and the output-language preference is stored locally. Provider and hosting metadata/retention policies are separate from the app's behavior.
+
+API keys stay on the backend and must never be placed in browser or desktop assets. The app has no automatic paid fallback. Cloud services remain subject to their free-plan quotas and terms.
+
+The owner has tested and accepted the Windows workflow for personal use. Automated checks cover the application workflow and failure handling; formal speech-quality acceptance was deferred for this practice project. This is not a guarantee of transcription accuracy or latency. See the [evaluation guide](docs/evaluation.md) for the maintained evaluation process.
+
+## Run locally
+
+Requirements: Node.js 24 and pnpm 12.8.1. On Windows, use `pnpm.cmd` if PowerShell blocks the `pnpm` shim.
 
 ```powershell
-pnpm install --frozen-lockfile
-Copy-Item .env.example .env # Only when .env does not already exist.
+pnpm.cmd install --frozen-lockfile
+Copy-Item .env.example .env # Only if .env does not already exist.
 ```
 
-Put your own Free-plan `GROQ_API_KEY` in the root `.env` file. Keep billing and auto-recharge disabled and enable zero data retention for speech and text in your Groq organization. Never put a key in a `VITE_` variable or commit `.env`. Existing process environment values take priority over `.env`.
+Set your own `GROQ_API_KEY` in the root `.env`. Use your intended free account/privacy settings and keep the key out of Git. Never use a `VITE_` variable for a provider key.
 
 ```powershell
-pnpm dev
+pnpm.cmd dev
 ```
 
-Open **http://127.0.0.1:5173** in a current Chrome or Edge browser. Allow microphone access when you press Start recording. Stop submits the clip; Cancel discards it without submitting. Recordings stop automatically at 60 seconds. Review both panels, edit the result and press Copy result. Refresh clears session text.
+Open **http://127.0.0.1:5173** in Chrome or Edge. This starts the local web app and API; only AI processing requires the cloud provider.
 
-In local mode, both servers bind to loopback. The Hono API listens on port 8787 and accepts mutations only from the intended web origin. Optional process environment variables `WEB_PORT` and `API_PORT` change both ports together; always open the matching `127.0.0.1` address. Hosted setup is a separate step: see [private Vercel deployment](docs/deployment.md). The deployment must restrict access to the owner.
+## Build the Windows app
 
-## Verify
+Build on Windows x64 with the Windows .NET Framework C# compiler available:
 
 ```powershell
-pnpm exec playwright install chromium
-pnpm check
+pnpm.cmd --filter @saylor/desktop runtime:install
+pnpm.cmd desktop:build
 ```
 
-`pnpm test` runs dictation, translation, multilingual, recovery and deployment suites sequentially on isolated ports. Browser tests launch the actual frontend and API, a synthetic browser microphone and a local fake Groq server. The deployment suite serves the built frontend through a local simulation using the actual Vercel function entry; it does not attest Vercel routing or authentication. Tests use a dummy key and never call the live provider. `FAKE_GROQ_PORT`, `WEB_PORT` and `API_PORT` allow parallel worktrees to use different ports. Tests observe the user workflow rather than component internals. A production build checks the web bundle and deployment entry; daily local startup remains `pnpm dev`.
+Open `SayLor.exe` in `apps/desktop/dist/releases/SayLor-win32-x64`. Keep the entire output folder together. The desktop build uses the hosted API and excludes the root `.env` and provider credentials. [Full build and verification instructions](docs/desktop.md).
 
-`pnpm check` runs the tool checks, type checking, all workflow suites, production build and credential scan. The GitHub Actions workflow runs the same command with dummy credentials. It does not run live speech evaluation. See [local operations](docs/agents/operations.md) and [resumable evaluation](docs/evaluation.md). `pnpm check:secrets --build` scans tracked/unignored working files and the browser build, including the locally configured key when present, without printing matching values. It is a targeted Groq/private-key check, not a general secret-detection service.
+## Development and verification
 
-## Boundaries
+```powershell
+pnpm.cmd exec playwright install chromium
+pnpm.cmd check
+```
 
-- `apps/web`: capture, review and clipboard UI. Browser audio is normalized to mono 16 kHz PCM16 WAV.
-- `apps/api`: validation and Groq adapters; keys stay in this backend. Two operations keep successful transcription separate from cleanup.
-- `packages/contracts`: stage request/response and failure types.
-- `POST /api/transcribe`: raw `audio/wav`, at most 1,920,044 bytes/60 seconds; returns `{ transcript }`.
-- `POST /api/process`: JSON `{ transcript, output: "original" | "en" | "zh" | "ms" }`; returns `{ result }`. The selected language translates the complete message or conservatively cleans input already in that language.
-- Failures return `{ error: { code, message, retryAfter? } }`. Requests are bounded, no automatic retries or paid fallback are implemented, and provider error bodies are never reflected.
+The shared check runs tool tests, desktop controller/proxy tests, type checking, browser/API workflows, production build and credential scanning. Controlled providers and synthetic microphone fixtures avoid live AI requests. Windows-only desktop smoke and packaged-startup checks are documented in the desktop guide.
 
-Choose Keep original languages, English, Simplified Chinese or Malay before or after recording. Only this preference is saved in browser storage. Once transcription is available, choosing a different language immediately processes the original transcription into that language; for example, speak Chinese and then choose English. You are asked before replacing manual edits; declining preserves your edits and previous language choice. Generate again repeats the current choice. A generation failure leaves the existing result available. Copy result always copies the current edit.
+| Area | Stack / responsibility |
+| --- | --- |
+| Web | React, Vite and TypeScript; microphone capture, editing and translation controls |
+| Desktop | Electron with a sandboxed renderer and a native Windows helper for guarded paste |
+| API | Hono on Node.js; validation, quotas and Groq adapters |
+| Hosting | Vercel Hobby frontend and Functions in one project |
+| AI | Whisper Large V3 Turbo for transcription; GPT-OSS 120B for cleanup and translation |
+| Workspace | pnpm; shared contracts in `packages/contracts` |
 
-Chinese output from text containing Latin letters uses an English semantic draft followed by a translation-only Chinese pass. Original Chinese name characters are supplied to the final pass. This makes at most two text-model calls within one shared 20-second deadline and uses more of the free quota. Chinese input without Latin letters and the other output choices use one text-model call. Either pass failing leaves the previous result available for explicit retry.
-
-Translation/regeneration browser checks use a separate controlled Groq fixture: `pnpm exec playwright test -c playwright.translation.config.ts`. Set `WEB_PORT=5273`, `API_PORT=8887`, and `FAKE_GROQ_PORT=9897` when running alongside another worktree.
-
-Groq's `whisper-large-v3-turbo` and `openai/gpt-oss-120b` are the preliminary selected models. Free availability is quota-limited. Multilingual segmentation and manual stage recovery are implemented. The live quality gate remains open; see the [current implementation map](.scratch/saylor/map.md) and [accuracy investigation](.scratch/saylor/accuracy-investigation.md) for results and remaining failures. Automated fixtures establish workflow behavior, not live translation quality. Only the repository owner may merge changes.
-
-Capture requests unprocessed microphone audio for dictation, then converts it to mono PCM16 WAV. Quiet speech is protected from an absolute-volume pause threshold. Real microphone, room-noise and accent validation remains necessary; simulated public-file replays do not establish that coverage.
-
-On a temporary transcription failure, Retry transcription reuses audio held only in page memory. Once transcription succeeds, audio is released and Retry text processing reuses the original text. Discard or Cancel processing releases a failed attempt; useful existing text stays available. Provider quota guidance disables new requests until the indicated wait expires. No automatic retries occur.
+Backend operations are `POST /api/transcribe` for bounded mono 16 kHz PCM16 WAV and `POST /api/process` for cleanup/translation. Provider keys, orchestration and timeouts belong to the backend. See [deployment](docs/deployment.md), [evaluation](docs/evaluation.md) and [local operations](docs/agents/operations.md) for maintenance details.

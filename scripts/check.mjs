@@ -10,5 +10,5 @@ const run = (command, args) => {
 const pnpm = process.env.npm_execpath;
 if (!pnpm) { console.error('Run this command through pnpm check.'); process.exit(1); }
 const javascript = /\.(?:c?js|mjs)$/i.test(pnpm);
-for (const task of ['test:tools', 'typecheck', 'test', 'build']) run(javascript ? process.execPath : pnpm, [...(javascript ? [pnpm] : []), 'run', task]);
+for (const task of ['test:tools', 'test:desktop', 'typecheck', 'test', 'build']) run(javascript ? process.execPath : pnpm, [...(javascript ? [pnpm] : []), 'run', task]);
 run(process.execPath, ['scripts/check-secrets.mjs', '--build']);

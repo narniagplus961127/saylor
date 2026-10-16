@@ -21,7 +21,7 @@ User authorized preparation of code, specification updates and local verificatio
 
 ## Comments
 
-Claimed on 2026-10-15 after user approval to prepare Vercel compatibility and check/update the spec. Desktop and Android APK remain later work; the web backend can be reused after designing suitable client authentication for those platforms.
+Claimed on 2026-10-15 after user approval to prepare Vercel compatibility and check/update the spec. Windows desktop was subsequently implemented with a restricted local protocol proxy to the hosted API. The owner removed native mobile apps from the roadmap on 2026-10-16.
 
 ## Answer
 

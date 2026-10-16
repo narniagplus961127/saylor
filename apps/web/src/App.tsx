@@ -23,9 +23,20 @@ export function App() {
   const [recordingRetryAt, setRecordingRetryAt] = useState(0);
   const pendingAudio = useRef<Blob | null>(null), pendingText = useRef(''), editVersion = useRef(0);
   const recording = useRef<Recording | null>(null), busy = useRef(false), attempt = useRef(0), request = useRef<AbortController | null>(null);
+  const desktopSession = useRef<string | null>(null);
+  const desktopCommand = useRef<(command: { kind: 'start' | 'stop' | 'cancel'; id: string }) => void>(() => {});
+  desktopCommand.current = command => {
+    if (command.kind === 'cancel') { if (command.id === '' || desktopSession.current === command.id) cancel(); return; }
+    if (command.kind === 'stop') { if (desktopSession.current === command.id) void stop(); return; }
+    if (busy.current || Date.now() < retryAt || Date.now() < recordingRetryAt) { window.saylorDesktop?.cancel(); return; }
+    desktopSession.current = command.id;
+    void start();
+  };
+  useEffect(() => window.saylorDesktop?.onCommand(command => desktopCommand.current(command)), []);
+  useEffect(() => { window.saylorDesktop?.updateStage(stage); }, [stage]);
   const busyStage = stage === 'permission' || stage === 'transcribing' || stage === 'cleaning' || stage === 'translating';
   useEffect(() => {
-    const dispose = () => { attempt.current++; pendingAudio.current = null; pendingText.current = ''; recording.current?.cancel(); recording.current = null; request.current?.abort(); };
+    const dispose = () => { desktopSession.current = null; window.saylorDesktop?.cancel(); attempt.current++; pendingAudio.current = null; pendingText.current = ''; recording.current?.cancel(); recording.current = null; request.current?.abort(); };
     window.addEventListener('pagehide', dispose);
     return () => { dispose(); window.removeEventListener('pagehide', dispose); };
   }, []);
@@ -47,7 +58,7 @@ export function App() {
       const capture = await startRecorder();
       if (id !== attempt.current) { capture.cancel(); return; }
       recording.current = capture; setStage('recording');
-    } catch (cause) { if (id !== attempt.current) return; setError(cause instanceof DOMException && cause.name === 'NotAllowedError' ? 'Microphone access was denied. Allow microphone access in your browser, then try again.' : cause instanceof DOMException && cause.name === 'NotFoundError' ? 'No microphone was found. Connect a microphone and try again.' : cause instanceof DOMException && cause.name === 'NotReadableError' ? 'Your microphone is unavailable. Close other apps using it and try again.' : cause instanceof Error ? cause.message : 'Could not start recording.'); setStage('error'); busy.current = false; }
+    } catch (cause) { if (id !== attempt.current) return; desktopSession.current = null; window.saylorDesktop?.cancel(); setError(cause instanceof DOMException && cause.name === 'NotAllowedError' ? 'Microphone access was denied. Allow microphone access in your browser, then try again.' : cause instanceof DOMException && cause.name === 'NotFoundError' ? 'No microphone was found. Connect a microphone and try again.' : cause instanceof DOMException && cause.name === 'NotReadableError' ? 'Your microphone is unavailable. Close other apps using it and try again.' : cause instanceof Error ? cause.message : 'Could not start recording.'); setStage('error'); busy.current = false; }
   }
   async function stop() {
     const capture = recording.current; if (!capture) return; recording.current = null;
@@ -61,6 +72,7 @@ export function App() {
     } catch (cause) { if (id === attempt.current) { fail(cause, null); busy.current = false; } }
   }
   function fail(cause: unknown, failed: 'transcription' | 'text' | null) {
+    desktopSession.current = null; window.saylorDesktop?.cancel();
     setError(cause instanceof Error ? cause.message : 'Processing failed. Please try again.');
     const detail = cause instanceof ApiError ? cause.detail : undefined;
     const retryable = !detail || !['invalid_input', 'no_speech', 'forbidden', 'configuration'].includes(detail.code);
@@ -83,8 +95,15 @@ export function App() {
       failed = 'text'; setStage(pendingOutput.current === 'original' ? 'cleaning' : 'translating');
       const cleaned = await processText({ transcript: pendingText.current, output: pendingOutput.current }, controller.signal);
       if (id !== attempt.current) return;
-      if (version === editVersion.current) { setResult(cleaned.result); setGeneratedResult(cleaned.result); }
-      else setNotice('Your edits were preserved. Retry generation when ready.');
+      if (version === editVersion.current) {
+        setResult(cleaned.result); setGeneratedResult(cleaned.result);
+        const desktopId = desktopSession.current; desktopSession.current = null;
+        if (desktopId && window.saylorDesktop) {
+          try { const pasted = await window.saylorDesktop.complete(desktopId, cleaned.result); if (id === attempt.current) setNotice(pasted.message); }
+          catch { if (id === attempt.current) setNotice('Automatic paste was unavailable. Review and copy the result.'); }
+        }
+      } else { desktopSession.current = null; window.saylorDesktop?.cancel(); setNotice('Your edits were preserved. Retry generation when ready.'); }
+      if (id !== attempt.current) return;
       pendingAudio.current = null; setStage('ready');
     } catch (cause) { if (id === attempt.current) fail(cause, failed); }
     finally { if (id === attempt.current) { busy.current = false; request.current = null; } }
@@ -97,10 +116,11 @@ export function App() {
     return true;
   }
   function retry() { if (busy.current || !failedStage || Date.now() < retryAt || (failedStage === 'transcription' && Date.now() < recordingRetryAt)) return; if (failedStage === 'text' && result !== generatedResult && !window.confirm('Retry text processing will replace your manual edits. Continue?')) return; busy.current = true; void run(failedStage, ++attempt.current); }
-  function cancel() { attempt.current++; request.current?.abort(); request.current = null; pendingAudio.current = null; pendingText.current = ''; recording.current?.cancel(); recording.current = null; busy.current = false; setFailedStage(null); setError(''); setStage(transcript || result ? 'ready' : 'idle'); setSeconds(0); setNotice('Recording discarded.'); }
+  function cancel() { desktopSession.current = null; window.saylorDesktop?.cancel(); attempt.current++; request.current?.abort(); request.current = null; pendingAudio.current = null; pendingText.current = ''; recording.current?.cancel(); recording.current = null; busy.current = false; setFailedStage(null); setError(''); setStage(transcript || result ? 'ready' : 'idle'); setSeconds(0); setNotice('Recording discarded.'); }
   async function copy() { try { await navigator.clipboard.writeText(result); setNotice('Copied to clipboard.'); } catch { setNotice('Copy failed. Select the result and copy it manually.'); } }
   return <main>
     <header className="topbar"><a className="brand" href="/" aria-label="SayLor home"><span className="brand-icon">〰</span> SayLor</a><span className="local-badge"><span /> Personal workspace</span></header>
+    {window.saylorDesktop && <p role="note">Ctrl+Alt+Space starts and stops dictation from your current app. Successful results paste there automatically when enabled in the tray. Escape cancels active shortcut dictation. Recording with the button below uses manual copy.</p>}
     <section className="intro"><p className="eyebrow">A LITTLE LESS TYPING. A LITTLE MORE YOU.</p><h1>Speak naturally.<br /><em>Make it yours.</em></h1><p className="subtitle">Your thoughts, turned into clear writing.<br />Record a moment. Review the words. Keep your voice.</p></section>
     <section className="recorder" aria-label="Voice recording">
       <div className={`record-symbol ${stage === 'recording' ? 'active' : ''}`} aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="12" y="4" width="8" height="16" rx="4"/><path d="M8 15v2a8 8 0 0 0 16 0v-2M16 25v4M11 29h10"/></svg></div>

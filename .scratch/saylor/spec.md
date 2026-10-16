@@ -9,7 +9,7 @@ Updated: 2026-10-16
 
 The user wants to speak naturally and obtain useful written text without manually typing, removing fillers, repairing false starts, or translating each message. Their speech includes English, Mandarin, Malay, and switches between these languages within one recording.
 
-SayLor must meet one person's needs with a hard $0 software/service budget, conservative meaning preservation, and suitable treatment of potentially personal or confidential speech. The local Windows web app remains supported. The hosted web version on Vercel is publicly accessible without login, sharing the same dictation and translation behavior. Desktop integration and native Android APK work are later phases.
+SayLor must meet one person's needs with a hard $0 software/service budget, conservative meaning preservation, and suitable treatment of potentially personal or confidential speech. The local Windows web app remains supported. The hosted web version on Vercel is publicly accessible without login, sharing the same dictation and translation behavior. The Windows tray app, global recording shortcut and automatic paste are implemented and owner-tested under the [desktop specification](../saylor-desktop/spec.md). Native mobile apps and PWAs are not planned; supported product scope is web and Windows desktop.
 
 ## Solution
 
@@ -74,7 +74,7 @@ For the hosted phase, one Vercel Hobby project serves the website and backend fu
 
 ### Architecture and software cost
 
-- Use TypeScript and pnpm workspaces, initially containing the web app, local API, and shared processing contracts. Add desktop/mobile projects later; avoid speculative shared packages.
+- Use TypeScript and pnpm workspaces, containing the web app, API, Windows desktop app, and shared processing contracts; avoid speculative shared packages.
 - Use React/Vite for the frontend and Hono on Node.js for the backend. Both run locally on Windows with one startup command. Pin compatible stable versions during authorized implementation.
 - Separate frontend capture/presentation from backend validation, credentials, orchestration, timeouts, and typed stage errors. Put provider-specific behavior behind replaceable adapters.
 - Shared contracts describe output choices, original transcription, result, processing stages, and failures. A single detected-language value must not imply that a mixed recording contains only one language.
@@ -85,7 +85,7 @@ For the hosted phase, one Vercel Hobby project serves the website and backend fu
 - Allow only exact configured hosted origins and trusted platform-provided deployment hostnames; never allow arbitrary `*.vercel.app` domains or derive authorization from untrusted forwarded headers. Missing/invalid hosted configuration must fail closed. Keep local-only access defaults isolated from the hosted entry point.
 - Store `GROQ_API_KEY` in server-only Vercel environment configuration. Never bundle it, read a shipped `.env`, log request bodies, or persist audio/transcripts in hosted functions. Hosted processing adds Vercel to the request path; platform logging/retention controls must be reviewed before confidential use. Configure function duration above the bounded per-stage provider deadline and retain audio limits and no-paid-fallback behavior.
 - Require free software and free service plans. Optional styling can use free Tailwind CSS; paid component kits, paid trials, and required subscriptions are excluded. Existing hardware, internet, and electricity are outside the software/service budget.
-- Use the user's public GitHub repository, [narniagplus961127/saylor](https://github.com/narniagplus961127/saylor), as the source repository when repository work is authorized. The user reports protected rules and retains exclusive merge authority. Agents must not merge pull requests, enable automatic merging, bypass protections, or modify repository rules; prepare reviewable changes for the user instead. Protection settings have not been independently audited in this spec task.
+- Use the user's public GitHub repository, [narniagplus961127/saylor](https://github.com/narniagplus961127/saylor), as the source repository when repository work is authorized. The owner controls merge authorization and repository protections. On 2026-10-16 the owner explicitly authorized pushing and merging the tested Windows desktop implementation, mobile-scope removal and visitor README update through a pull request. Follow normal checks and repository rules; do not bypass protections, force-push main, change rules or enable automatic merging. Future merges require owner authorization.
 
 ### Recording, API, and failure behavior
 
@@ -156,8 +156,8 @@ For the hosted phase, one Vercel Hobby project serves the website and backend fu
 
 - Paid-service activation, application-managed account system, synchronization, database, and saved transcript/audio history. Public access without login is explicitly in scope; multi-user account management is not.
 - Production promotion without separate owner authorization. Hosted deployment was subsequently authorized; owner-only access is no longer a release requirement.
-- Windows desktop packaging, global shortcuts, floating recorder, and insertion into other apps.
-- Mobile apps, custom keyboards, system-wide dictation, macOS support.
+- Windows desktop behavior is specified separately in the implemented [desktop MVP](../saylor-desktop/spec.md); it is outside this web-phase specification.
+- Native mobile apps and PWAs (removed from the roadmap), custom keyboards and macOS support.
 - Continuous/real-time streaming, offline inference, system-audio capture, text-to-speech, simultaneous translation targets, and additional initial output choices.
 - Personal dictionaries, automatic vocabulary learning, snippets, per-app tone, creative rewriting, meeting recording, speaker identification, and summaries.
 - Unlimited free use, guaranteed cloud latency, or accuracy claims unsupported by evaluation.
@@ -181,5 +181,5 @@ For the hosted phase, one Vercel Hobby project serves the website and backend fu
   - [Groq data controls](https://console.groq.com/docs/your-data)
   - [Groq services agreement](https://console.groq.com/docs/legal/services-agreement)
   - [Gemini API terms](https://ai.google.dev/gemini-api/terms)
-- Local software uses free/open-source components; cloud inference is a separate quota-limited service. Future desktop/mobile distribution needs a separate cost review.
+- Local software uses free/open-source components; cloud inference is a separate quota-limited service. Windows distribution is an unsigned portable app using free tooling. No native mobile distribution is planned.
 - Hosted-phase clarification on 2026-10-15 supersedes the original local-only hosting exclusion. Prepare and test code first; retain ticket 06's failed quality gate. Reference current [Vercel Node.js functions](https://vercel.com/docs/functions/runtimes/node-js), [Hobby plan](https://vercel.com/docs/plans/hobby), and [Vercel Authentication](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication) when configuring the separately authorized deployment.
