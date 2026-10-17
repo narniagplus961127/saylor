@@ -17,6 +17,28 @@ SayLor is a personal learning project for short dictation and translation, avail
 
 For example, speak Chinese and choose **English** to get an English result. Cleanup aims to remove fillers and false starts while preserving your meaning. Review names, numbers and important wording before using the result.
 
+## Screenshots
+
+These screenshots use non-sensitive demo text and simulated AI responses to illustrate the interface, rather than measured speech accuracy.
+
+### Recording workspace
+
+Start a recording, choose an output language, and review your original words beside the result.
+
+![SayLor recording workspace with microphone controls, output-language selection and separate original/result panels](docs/screenshots/workspace.png)
+
+### Dictation and cleanup
+
+Review the original transcription alongside a cleaner result, then edit or copy it. This example shows a corrected time and a dictated paragraph break.
+
+![Original dictation with fillers and a correction from three to four, beside a cleaned result saying Friday at 4 pm](docs/screenshots/dictation.png)
+
+### Chinese to English
+
+Choose **English** after recording Chinese to translate the original transcription immediately, without recording again.
+
+![English selected as the output language, with Chinese original transcription and its English translation side by side](docs/screenshots/chinese-to-english.png)
+
 ## Use the web app
 
 Open [qw-saylor.vercel.app](https://qw-saylor.vercel.app/), allow microphone access when prompted, and select **Start recording**. Stop when finished, choose an output language, then review, edit and copy your result. Selecting another language translates the original transcription immediately; SayLor asks before replacing manual edits.
